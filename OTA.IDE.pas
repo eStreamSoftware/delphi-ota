@@ -26,6 +26,7 @@ uses SysUtils, Classes, Registry, Dialogs;
 
 resourcestring
   StrActiveProjectModule = 'ActiveProjectModule';
+  StrActiveHostApplication = 'ActiveHostApplication';
 
 procedure Register;
 begin
@@ -41,19 +42,32 @@ procedure TSetActiveProjectModule.BeforeCompile(const Project: IOTAProject;
   var Cancel: Boolean);
 var F: string;
     R: TRegistry;
-    sModuleName: string;
+    sModuleName, sHostApplication: string;
     S: TStringList;
+    i: integer;
+    M: IOTAModuleServices;
 begin
+  sHostApplication := '';
+  sModuleName := '';
+
+  M := BorlandIDEServices as IOTAModuleServices;
+
+  // Calculate Active Project Module
   S := TStringList.Create;
   try
     S.Delimiter := '\';
-    S.DelimitedText := (BorlandIDEServices as IOTAModuleServices).GetActiveProject.FileName;
-    if S.Count < 4 then
-      sModuleName := ''
-    else
+    S.DelimitedText := M.GetActiveProject.FileName;
+    if S.Count >= 4 then
       sModuleName := S[S.Count - 4];
   finally
     S.Free;
+  end;
+
+  // Calculate Active Host Application
+  for i := M.MainProjectGroup.ProjectCount - 1 downto 0 do begin
+    F := M.MainProjectGroup.Projects[i].ProjectOptions.TargetName;
+    if SameText(ExtractFileExt(F), '.EXE') then
+      sHostApplication := F;
   end;
 
   R := TRegistry.Create;
@@ -63,6 +77,10 @@ begin
     if R.OpenKey(F, True) then begin
       if R.ReadString(StrActiveProjectModule) <> sModuleName then
         R.WriteString(StrActiveProjectModule, sModuleName);
+
+      if R.ReadString(StrActiveHostApplication) <> sHostApplication then
+        R.WriteString(StrActiveHostApplication, sHostApplication);
+
       R.CloseKey;
     end;
   finally
