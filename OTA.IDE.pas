@@ -49,8 +49,9 @@ begin
     S.Delimiter := '\';
     S.DelimitedText := (BorlandIDEServices as IOTAModuleServices).GetActiveProject.FileName;
     if S.Count < 4 then
-      MessageDlg('Unable to determine project module name', mtError, [mbOK], 0);
-    sModuleName := S[S.Count - 4];
+      sModuleName := ''
+    else
+      sModuleName := S[S.Count - 4];
   finally
     S.Free;
   end;
