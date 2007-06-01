@@ -22,7 +22,7 @@ procedure Register;
 
 implementation
 
-uses SysUtils, Classes, Registry, Dialogs;
+uses SysUtils, Classes, Registry;
 
 resourcestring
   StrActiveProjectModule = 'ActiveProjectModule';
@@ -75,11 +75,15 @@ begin
     R.RootKey := HKEY_CURRENT_USER;
     F := (BorlandIDEServices as IOTAServices).GetBaseRegistryKey + '\Environment Variables';
     if R.OpenKey(F, True) then begin
-      if R.ReadString(StrActiveProjectModule) <> sModuleName then
+      if R.ReadString(StrActiveProjectModule) <> sModuleName then begin
         R.WriteString(StrActiveProjectModule, sModuleName);
+        SetEnvironmentVariable(PAnsiChar(StrActiveProjectModule), PAnsiChar(sModuleName));
+      end;
 
-      if R.ReadString(StrActiveHostApplication) <> sHostApplication then
+      if R.ReadString(StrActiveHostApplication) <> sHostApplication then begin
         R.WriteString(StrActiveHostApplication, sHostApplication);
+        SetEnvironmentVariable(PAnsiChar(StrActiveHostApplication), PAnsiChar(sHostApplication));
+      end;
 
       R.CloseKey;
     end;
