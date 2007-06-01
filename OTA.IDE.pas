@@ -31,6 +31,7 @@ resourcestring
 procedure Register;
 begin
   TSetActiveProjectModule.Setup;
+  SplashScreenServices.AddProductBitmap('E Stream Software IDE Expert', 0);
 end;
 
 procedure TSetActiveProjectModule.AfterCompile(Succeeded: Boolean);
