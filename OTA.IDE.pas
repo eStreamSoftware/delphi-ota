@@ -13,6 +13,8 @@ type
     procedure AfterCompile(Succeeded: Boolean); overload;
   protected
     class var NotifierIndex: Integer;
+    function GetModuleName(const aFileName: string): string;
+    procedure SetVariable(const aName, aValue: string);
   public
     class procedure Setup;
     class procedure TearDown;
@@ -31,7 +33,7 @@ resourcestring
 procedure Register;
 begin
   TSetActiveProjectModule.Setup;
-  SplashScreenServices.AddProductBitmap('E Stream Software IDE Expert', 0);
+  SplashScreenServices.AddPluginBitmap('E Stream Software IDE Expert', 0);
 end;
 
 procedure TSetActiveProjectModule.AfterCompile(Succeeded: Boolean);
@@ -42,27 +44,13 @@ end;
 procedure TSetActiveProjectModule.BeforeCompile(const Project: IOTAProject;
   var Cancel: Boolean);
 var F: string;
-    R: TRegistry;
-    sModuleName, sHostApplication: string;
-    S: TStringList;
+    sHostApplication: string;
     i: integer;
     M: IOTAModuleServices;
 begin
   sHostApplication := '';
-  sModuleName := '';
 
   M := BorlandIDEServices as IOTAModuleServices;
-
-  // Calculate Active Project Module
-  S := TStringList.Create;
-  try
-    S.Delimiter := '\';
-    S.DelimitedText := M.GetActiveProject.FileName;
-    if S.Count >= 4 then
-      sModuleName := S[S.Count - 4];
-  finally
-    S.Free;
-  end;
 
   // Calculate Active Host Application
   for i := M.MainProjectGroup.ProjectCount - 1 downto 0 do begin
@@ -71,31 +59,22 @@ begin
       sHostApplication := F;
   end;
 
-  R := TRegistry.Create;
-  try
-    R.RootKey := HKEY_CURRENT_USER;
-    F := (BorlandIDEServices as IOTAServices).GetBaseRegistryKey + '\Environment Variables';
-    if R.OpenKey(F, True) then begin
-      if R.ReadString(StrActiveProjectModule) <> sModuleName then begin
-        R.WriteString(StrActiveProjectModule, sModuleName);
-        SetEnvironmentVariable(PAnsiChar(StrActiveProjectModule), PAnsiChar(sModuleName));
-      end;
-
-      if R.ReadString(StrActiveHostApplication) <> sHostApplication then begin
-        R.WriteString(StrActiveHostApplication, sHostApplication);
-        SetEnvironmentVariable(PAnsiChar(StrActiveHostApplication), PAnsiChar(sHostApplication));
-      end;
-
-      R.CloseKey;
-    end;
-  finally
-    R.Free;
-  end;
+  SetVariable(StrActiveHostApplication, sHostApplication);
 end;
 
 procedure TSetActiveProjectModule.FileNotification(NotifyCode: TOTAFileNotification;
   const FileName: string; var Cancel: Boolean);
+var sExt: string;
+    sGroup, sProj: string;
 begin
+  if NotifyCode = ofnFileOpening then begin
+    sExt := ExtractFileExt(FileName);
+    sGroup := {$if CompilerVersion<=18} '.bdsgroup' {$else} '.groupproj' {$ifend};
+    sProj := {$if CompilerVersion<=18} '.bdsproj' {$else} '.dproj' {$ifend};
+    if SameText(sExt, sGroup) or SameText(sExt, sProj) then
+      SetVariable(StrActiveProjectModule, GetModuleName(FileName));
+  end;
+  Cancel := False;
 end;
 
 class procedure TSetActiveProjectModule.Setup;
@@ -103,6 +82,40 @@ var N: IOTAIDENotifier;
 begin
   N := TSetActiveProjectModule.Create;
   NotifierIndex := (BorlandIDEServices as IOTAServices).AddNotifier(N);
+end;
+
+procedure TSetActiveProjectModule.SetVariable(const aName, aValue: string);
+var R: TRegistry;
+    F: string;
+begin
+  R := TRegistry.Create;
+  try
+    R.RootKey := HKEY_CURRENT_USER;
+    F := (BorlandIDEServices as IOTAServices).GetBaseRegistryKey + '\Environment Variables';
+    if R.OpenKey(F, True) then begin
+      if R.ReadString(aName) <> aValue then begin
+        R.WriteString(aName, aValue);
+        SetEnvironmentVariable(PAnsiChar(aName), PAnsiChar(aValue));
+      end;
+      R.CloseKey;
+    end;
+  finally
+    R.Free;
+  end;
+end;
+
+function TSetActiveProjectModule.GetModuleName(const aFileName: string): string;
+var S: TStringList;
+begin
+  S := TStringList.Create;
+  try
+    S.Delimiter := '\';
+    S.DelimitedText := aFileName;
+    if S.Count >= 4 then
+      Result := S[S.Count - 4];
+  finally
+    S.Free;
+  end;
 end;
 
 class procedure TSetActiveProjectModule.TearDown;
