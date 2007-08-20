@@ -136,7 +136,7 @@ procedure TSetOEMDir.AfterConstruction;
 var s: string;
 begin
   inherited;
-  s := GetEnvironmentVariable('FactoryDir');
+  s := GetEnvironmentVariable(StrFactoryDir);
   if (s = '') or not DirectoryExists(s) then begin
     if SelectDirectory(Format('Choose Factory Folder (%s)', [StrFactoryDir]), '', s) then
       TOTAUtil.SetVariable(StrFactoryDir, s);
@@ -188,7 +188,7 @@ begin
   try
     N.CaseSensitive := False;
     N.LoadFromFile(sIniFile);
-    aOEMDir := Format('%s\%s\oem\%s', ['C:\Users\ccy\Documents\project\factory', N.Values['Factory'], N.Values['OEM']]);
+    aOEMDir := Format('%s\%s\oem\%s', [GetEnvironmentVariable(StrFactoryDir), N.Values['Factory'], N.Values['OEM']]);
     Result := True;
   finally
     N.Free;
