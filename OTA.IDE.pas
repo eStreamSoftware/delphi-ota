@@ -107,13 +107,17 @@ end;
 
 function TSetActiveProjectModule.GetModuleName(const aFileName: string): string;
 var S: TStringList;
+    i: integer;
 begin
+  Result := '';
   S := TStringList.Create;
   try
+    S.CaseSensitive := False;
     S.Delimiter := '\';
     S.DelimitedText := aFileName;
-    if S.Count >= 4 then
-      Result := S[S.Count - 4];
+    i := S.IndexOf('Project');
+    if (i <> -1) and (i < S.Count) then 
+      Result := S[i + 2];
   finally
     S.Free;
   end;
