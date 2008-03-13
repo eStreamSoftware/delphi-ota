@@ -7,6 +7,7 @@ uses Windows, ToolsAPI;
 type
   TOTAUtil = class abstract
   public
+    class function GetSetupIni(const aProject: string; out aFile: string): boolean;
     class procedure SetVariable(const aName, aValue: string);
   end;
 
@@ -66,46 +67,21 @@ end;
 procedure TSetActiveProjectModule.BeforeCompile(const Project: IOTAProject;
   var Cancel: Boolean);
 var sHostApplication: string;
-    i: integer;
     sFile: string;
     S: TStringList;
-    F: TSearchRec;
-    sPath: string;
 begin
   sHostApplication := '';
 
-  // Find Project root path
-  S := TStringList.Create;
-  try
-    S.Delimiter := '\';
-    S.DelimitedText := Project.FileName;
-    if S.Count > 3 then begin
-      for i := 1 to 3 do
-        S.Delete(S.Count - 1);
-      sPath := S.DelimitedText;
-    end else
-      Exit;
-  finally
-    S.Free;
-  end;
-
-  // Find Host Application File Name in setup.ini
-  if FindFirst(Format('%s\*.*', [sPath]), faDirectory, F) = 0 then begin
-    while FindNext(F) = 0 do begin
-      sFile := Format('%s\%s\project\setup.ini', [sPath, F.Name]);
-      if FileExists(sFile) then begin
-        S := TStringList.Create;
-        try
-          S.LoadFromFile(sFile);
-          if S.Values['hostapp'] <> '' then
-            sHostApplication := Format('%s\%s', [ExtractFilePath(Project.ProjectOptions.TargetName), S.Values['hostapp']]);
-        finally
-          S.Free;
-        end;
-        Break;
-      end;
+  if TOTAUtil.GetSetupIni(Project.FileName, sFile) then begin
+    S := TStringList.Create;
+    try
+      S.CaseSensitive := False;
+      S.LoadFromFile(sFile);
+      if S.Values['hostapp'] <> '' then
+        sHostApplication := Format('%s\%s', [ExtractFilePath(Project.ProjectOptions.TargetName), S.Values['hostapp']]);
+    finally
+      S.Free;
     end;
-    FindClose(F);
   end;
 
   // Set Host Application in environment variable
@@ -212,19 +188,17 @@ function TSetOEMDir.GetOEMDir(const aFileName: string; out aOEMDir: string):
 var N: TStringList;
     sIniFile: string;
 begin
-  aOEMDir := '';
-  sIniFile := Format('%s\%s', [ExtractFilePath(aFileName), 'setup.ini']);
-  Result := FileExists(sIniFile);
-  if not Result then Exit;
-
-  N := TStringList.Create;
-  try
-    N.CaseSensitive := False;
-    N.LoadFromFile(sIniFile);
-    aOEMDir := Format('%s\%s\oem\%s', [GetEnvironmentVariable(StrFactoryDir), N.Values['Factory'], N.Values['OEM']]);
-    Result := True;
-  finally
-    N.Free;
+  Result := False;
+  if TOTAUtil.GetSetupIni(aFileName, sIniFile) then begin
+    N := TStringList.Create;
+    try
+      N.CaseSensitive := False;
+      N.LoadFromFile(sIniFile);
+      aOEMDir := Format('%s\%s\oem\%s', [GetEnvironmentVariable(StrFactoryDir), N.Values['Factory'], N.Values['OEM']]);
+      Result := True;
+    finally
+      N.Free;
+    end;
   end;
 end;
 
@@ -239,6 +213,45 @@ class procedure TSetOEMDir.TearDown;
 begin
   if NotifierIndex <> -1 then
     (BorlandIDEServices as IOTAServices).RemoveNotifier(NotifierIndex);
+end;
+
+class function TOTAUtil.GetSetupIni(const aProject: string; out aFile: string):
+    boolean;
+var i: integer;
+    sFile: string;
+    S: TStringList;
+    F: TSearchRec;
+    sPath: string;
+begin
+  Result := False;
+
+  // Find Project root path
+  S := TStringList.Create;
+  try
+    S.Delimiter := '\';
+    S.DelimitedText := aProject;
+    if S.Count > 3 then begin
+      for i := 1 to 3 do
+        S.Delete(S.Count - 1);
+      sPath := S.DelimitedText;
+    end else
+      Exit;
+  finally
+    S.Free;
+  end;
+
+  // Find Host Application File Name in setup.ini
+  if FindFirst(Format('%s\*.*', [sPath]), faDirectory, F) = 0 then begin
+    while FindNext(F) = 0 do begin
+      sFile := Format('%s\%s\project\setup.ini', [sPath, F.Name]);
+      if FileExists(sFile) then begin
+        aFile := sFile;
+        Result := True;
+        Break;
+      end;
+    end;
+    FindClose(F);
+  end;
 end;
 
 class procedure TOTAUtil.SetVariable(const aName, aValue: string);
