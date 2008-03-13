@@ -43,7 +43,7 @@ procedure Register;
 
 implementation
 
-uses SysUtils, Classes, Registry, Dialogs, FileCtrl;
+uses SysUtils, Classes, Registry, FileCtrl;
 
 resourcestring
   StrActiveProjectModule   = 'ActiveProjectModule';
@@ -65,21 +65,50 @@ end;
 
 procedure TSetActiveProjectModule.BeforeCompile(const Project: IOTAProject;
   var Cancel: Boolean);
-var F: string;
-    sHostApplication: string;
+var sHostApplication: string;
     i: integer;
-    M: IOTAModuleServices;
+    sFile: string;
+    S: TStringList;
+    F: TSearchRec;
+    sPath: string;
 begin
   sHostApplication := '';
 
-  M := BorlandIDEServices as IOTAModuleServices;
-
-  // Calculate Active Host Application
-  for i := M.MainProjectGroup.ProjectCount - 1 downto 0 do begin
-    F := M.MainProjectGroup.Projects[i].ProjectOptions.TargetName;
-    if SameText(ExtractFileExt(F), '.EXE') then
-      sHostApplication := F;
+  // Find Project root path
+  S := TStringList.Create;
+  try
+    S.Delimiter := '\';
+    S.DelimitedText := Project.FileName;
+    if S.Count > 3 then begin
+      for i := 1 to 3 do
+        S.Delete(S.Count - 1);
+      sPath := S.DelimitedText;
+    end else
+      Exit;
+  finally
+    S.Free;
   end;
+
+  // Find Host Application File Name in setup.ini
+  if FindFirst(Format('%s\*.*', [sPath]), faDirectory, F) = 0 then begin
+    while FindNext(F) = 0 do begin
+      sFile := Format('%s\%s\project\setup.ini', [sPath, F.Name]);
+      if FileExists(sFile) then begin
+        S := TStringList.Create;
+        try
+          S.LoadFromFile(sFile);
+          if S.Values['hostapp'] <> '' then
+            sHostApplication := Format('%s\%s', [ExtractFilePath(Project.ProjectOptions.TargetName), S.Values['hostapp']]);
+        finally
+          S.Free;
+        end;
+        Break;
+      end;
+    end;
+    FindClose(F);
+  end;
+
+  // Set Host Application in environment variable
   TOTAUtil.SetVariable(StrActiveHostApplication, sHostApplication);
 end;
 
