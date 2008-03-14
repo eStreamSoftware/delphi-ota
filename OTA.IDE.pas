@@ -7,6 +7,7 @@ uses Windows, ToolsAPI;
 type
   TOTAUtil = class abstract
   public
+    class function GetSourceDir(const aProject: string; out aDir: string): boolean;
     class function GetSetupIni(const aProject: string; out aFile: string): boolean;
     class procedure SetVariable(const aName, aValue: string);
   end;
@@ -51,6 +52,7 @@ resourcestring
   StrActiveHostApplication = 'ActiveHostApplication';
   StrFactoryDir            = 'FactoryDir';
   StrOEMDir                = 'OEMDir';
+  StrSourceDir             = 'SourceDir';
 
 procedure Register;
 begin
@@ -92,13 +94,17 @@ procedure TSetActiveProjectModule.FileNotification(NotifyCode: TOTAFileNotificat
   const FileName: string; var Cancel: Boolean);
 var sExt: string;
     sGroup, sProj: string;
+    sDir: string;
 begin
   if NotifyCode = ofnFileOpening then begin
     sExt := ExtractFileExt(FileName);
     sGroup := {$if CompilerVersion<=18} '.bdsgroup' {$else} '.groupproj' {$ifend};
     sProj := {$if CompilerVersion<=18} '.bdsproj' {$else} '.dproj' {$ifend};
-    if SameText(sExt, sGroup) or SameText(sExt, sProj) then
+    if SameText(sExt, sGroup) or SameText(sExt, sProj) then begin
       TOTAUtil.SetVariable(StrActiveProjectModule, GetModuleName(FileName));
+      if TOTAUtil.GetSourceDir(FileName, sDir) then
+        TOTAUtil.SetVariable(StrSourceDir, sDir);
+    end;
   end;
   Cancel := False;
 end;
@@ -121,7 +127,7 @@ begin
     S.Delimiter := '\';
     S.DelimitedText := aFileName;
     i := S.IndexOf('Project');
-    if (i <> -1) and (i < S.Count) then 
+    if (i <> -1) and (i < S.Count) then
       Result := S[i + 2];
   finally
     S.Free;
@@ -217,28 +223,14 @@ end;
 
 class function TOTAUtil.GetSetupIni(const aProject: string; out aFile: string):
     boolean;
-var i: integer;
-    sFile: string;
-    S: TStringList;
+var sFile: string;
     F: TSearchRec;
     sPath: string;
 begin
   Result := False;
 
   // Find Project root path
-  S := TStringList.Create;
-  try
-    S.Delimiter := '\';
-    S.DelimitedText := aProject;
-    if S.Count > 3 then begin
-      for i := 1 to 3 do
-        S.Delete(S.Count - 1);
-      sPath := S.DelimitedText;
-    end else
-      Exit;
-  finally
-    S.Free;
-  end;
+  if not GetSourceDir(aProject, sPath) then Exit;
 
   // Find Host Application File Name in setup.ini
   if FindFirst(Format('%s\*.*', [sPath]), faDirectory, F) = 0 then begin
@@ -251,6 +243,27 @@ begin
       end;
     end;
     FindClose(F);
+  end;
+end;
+
+class function TOTAUtil.GetSourceDir(const aProject: string; out aDir: string):
+    boolean;
+var S: TStringList;
+    i: integer;
+begin
+  Result := False;
+  S := TStringList.Create;
+  try
+    S.Delimiter := '\';
+    S.DelimitedText := aProject;
+    if S.Count > 3 then begin
+      for i := 1 to 3 do
+        S.Delete(S.Count - 1);
+      aDir := S.DelimitedText;
+      Result := True;
+    end;
+  finally
+    S.Free;
   end;
 end;
 
