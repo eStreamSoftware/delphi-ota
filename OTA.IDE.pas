@@ -79,8 +79,8 @@ begin
     try
       S.CaseSensitive := False;
       S.LoadFromFile(sFile);
-      if S.Values['hostapp'] <> '' then
-        sHostApplication := Format('%s\%s', [ExtractFilePath(Project.ProjectOptions.TargetName), S.Values['hostapp']]);
+      if S.Values['commonname'] <> '' then
+        sHostApplication := Format('%s\%s.exe', [ExtractFilePath(Project.ProjectOptions.TargetName), S.Values['commonname']]);
     finally
       S.Free;
     end;
@@ -200,7 +200,7 @@ begin
     try
       N.CaseSensitive := False;
       N.LoadFromFile(sIniFile);
-      aOEMDir := Format('%s\%s\oem\%s', [GetEnvironmentVariable(StrFactoryDir), N.Values['Factory'], N.Values['OEM']]);
+      aOEMDir := Format('%s\%s\oem\developer', [GetEnvironmentVariable(StrFactoryDir), N.Values['name'], N.Values['OEM']]);
       Result := True;
     finally
       N.Free;
