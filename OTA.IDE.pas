@@ -278,7 +278,7 @@ begin
     if R.OpenKey(F, True) then begin
       if R.ReadString(aName) <> aValue then begin
         R.WriteString(aName, aValue);
-        SetEnvironmentVariable(PAnsiChar(aName), PAnsiChar(aValue));
+        SetEnvironmentVariable(PChar(aName), PChar(aValue));
       end;
       R.CloseKey;
     end;
