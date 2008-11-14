@@ -193,6 +193,7 @@ function TSetOEMDir.GetOEMDir(const aFileName: string; out aOEMDir: string):
     Boolean;
 var N: TStringList;
     sIniFile: string;
+    o: string;
 begin
   Result := False;
   if TOTAUtil.GetSetupIni(aFileName, sIniFile) then begin
@@ -200,7 +201,9 @@ begin
     try
       N.CaseSensitive := False;
       N.LoadFromFile(sIniFile);
-      aOEMDir := Format('%s\%s\oem\developer', [GetEnvironmentVariable(StrFactoryDir), N.Values['name'], N.Values['OEM']]);
+      o := N.Values['OEM'];
+      if o = '' then o := 'developer';
+      aOEMDir := Format('%s\%s\oem\%s', [GetEnvironmentVariable(StrFactoryDir), N.Values['name'], o]);
       Result := True;
     finally
       N.Free;
@@ -235,7 +238,10 @@ begin
   // Find Host Application File Name in setup.ini
   if FindFirst(Format('%s\*.*', [sPath]), faDirectory, F) = 0 then begin
     while FindNext(F) = 0 do begin
-      sFile := Format('%s\%s\project\setup.ini', [sPath, F.Name]);
+      sFile := Format(
+                 '%s\%s\%s\setup.ini',
+                 [sPath, F.Name, {$if CompilerVersion<=18.5}'project'{$else}'project.d12'{$ifend}]
+               );
       if FileExists(sFile) then begin
         aFile := sFile;
         Result := True;
