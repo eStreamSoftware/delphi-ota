@@ -2,7 +2,7 @@ unit OTA.IDE;
 
 interface
 
-uses Windows, ToolsAPI;
+uses Windows, ToolsAPI, Menus, Messages;
 
 type
   TOTAUtil = class abstract
@@ -41,11 +41,39 @@ type
     class procedure TearDown;
   end;
 
+  TSearchMissingFile = class(TNotifierObject, INTAProjectMenuCreatorNotifier)
+  private
+    FText: string;
+    procedure OnMenuClick(Sender: TObject);
+  protected
+    class var NotifierIndex: Integer;
+    function AddMenu(const Ident: string): TMenuItem;
+    function CanHandle(const Ident: string): Boolean;
+  public
+    procedure AfterConstruction; override;
+    class procedure Setup;
+    class procedure TearDown;
+  end;
+
+  TSearchProject = class(TNotifierObject, INTAProjectMenuCreatorNotifier)
+  private
+    FText: string;
+    function FindActiveProjectIndex: Integer;
+    procedure OnMenuClick(Sender: TObject);
+  protected
+    class var NotifierIndex: Integer;
+    function AddMenu(const Ident: string): TMenuItem;
+    function CanHandle(const Ident: string): Boolean;
+  public
+    class procedure Setup;
+    class procedure TearDown;
+  end;
+
 procedure Register;
 
 implementation
 
-uses SysUtils, Classes, Registry, FileCtrl;
+uses SysUtils, Classes, Registry, FileCtrl, Dialogs;
 
 resourcestring
   StrActiveProjectModule   = 'ActiveProjectModule';
@@ -58,6 +86,8 @@ procedure Register;
 begin
   TSetActiveProjectModule.Setup;
   TSetOEMDir.Setup;
+  TSearchProject.Setup;
+  TSearchMissingFile.Setup;
   SplashScreenServices.AddPluginBitmap('E Stream Software IDE Expert', 0);
 end;
 
@@ -293,10 +323,131 @@ begin
   end;
 end;
 
+function TSearchMissingFile.AddMenu(const Ident: string): TMenuItem;
+begin
+  Result := TMenuItem.Create(nil);
+  Result.Caption := 'Search Missing File';
+  Result.OnClick := OnMenuClick;
+end;
+
+procedure TSearchMissingFile.AfterConstruction;
+begin
+  inherited;
+  FText := 'Library.rc';  //by default search Library.rc
+end;
+
+function TSearchMissingFile.CanHandle(const Ident: string): Boolean;
+begin
+  Result := SameText(Ident, sProjectContainer);
+end;
+
+procedure TSearchMissingFile.OnMenuClick(Sender: TObject);
+var i, j, lCount: integer;
+    bFound: boolean;
+    G: IOTAProjectGroup;
+    M: IOTAMessageGroup;
+begin
+  if InputQuery('Search Missing File', 'Please enter file name', FText) then begin
+    lCount := 0;
+    M := (BorlandIDEServices as IOTAMessageServices80).AddMessageGroup(Format('Missing "%s" Projects', [FText]));
+    (BorlandIDEServices as IOTAMessageServices80).ClearMessageGroup(M);
+    G := (BorlandIDEServices as IOTAModuleServices).MainProjectGroup;
+    for i := 0 to G.ProjectCount - 1 do begin
+      bFound := False;
+      for j := 0 to G.Projects[i].GetModuleCount - 1 do begin
+        bFound := SameText(G.Projects[i].GetModule(j).Name, FText);
+        if bFound then
+          Break;
+      end;
+      if not bFound then begin
+        (BorlandIDEServices as IOTAMessageServices80).AddTitleMessage(ExtractFileName(G.Projects[i].ProjectOptions.TargetName), M);
+        Inc(lCount);
+      end;
+    end;
+    ShowMessageFmt('%d projects found.', [lCount]);
+    (BorlandIDEServices as IOTAMessageServices80).ShowMessageView(M);
+  end;
+end;
+
+class procedure TSearchMissingFile.Setup;
+var N: INTAProjectMenuCreatorNotifier;
+begin
+  N := TSearchMissingFile.Create;
+  NotifierIndex := (BorlandIDEServices as IOTAProjectManager).AddMenuCreatorNotifier(N);
+end;
+
+class procedure TSearchMissingFile.TearDown;
+begin
+  if NotifierIndex <> -1 then
+    (BorlandIDEServices as IOTAProjectManager).RemoveMenuCreatorNotifier(NotifierIndex);
+end;
+
+function TSearchProject.AddMenu(const Ident: string): TMenuItem;
+begin
+  Result := TMenuItem.Create(nil);
+  Result.Caption := 'Search Project';
+  Result.ShortCut := TextToShortCut('F3');
+  Result.OnClick := OnMenuClick;
+end;
+                                                       
+function TSearchProject.CanHandle(const Ident: string): Boolean;
+begin
+  Result := SameText(Ident, sProjectContainer);
+end;
+
+function TSearchProject.FindActiveProjectIndex: Integer;
+var G: IOTAProjectGroup;
+    i: integer;
+begin
+  Result := -1;
+  G := (BorlandIDEServices as IOTAModuleServices).MainProjectGroup;
+  for i := 0 to G.ProjectCount - 1 do begin
+    if G.Projects[i] = G.ActiveProject then begin
+      Result := i;
+      Break;
+    end;
+  end;
+end;
+
+procedure TSearchProject.OnMenuClick(Sender: TObject);
+var i, lActiveIndex: integer;
+    G: IOTAProjectGroup;
+begin
+  if InputQuery('Find Project', 'Project to find', FText) then begin
+    G := (BorlandIDEServices as IOTAModuleServices).MainProjectGroup;
+    lActiveIndex := FindActiveProjectIndex + 1;
+    if lActiveIndex >= G.ProjectCount then
+      lActiveIndex := 0; //start from first
+    for i := lActiveIndex to G.ProjectCount - 1 do begin
+      if Pos(FText, G.Projects[i].ProjectOptions.TargetName) > 0 then begin
+        G.ActiveProject := G.Projects[i];
+        Break;
+      end;
+    end;
+  end;
+end;
+
+class procedure TSearchProject.Setup;
+var N: INTAProjectMenuCreatorNotifier;
+begin
+  N := TSearchProject.Create;
+  NotifierIndex := (BorlandIDEServices as IOTAProjectManager).AddMenuCreatorNotifier(N);
+end;
+
+class procedure TSearchProject.TearDown;
+begin
+  if NotifierIndex <> -1 then
+    (BorlandIDEServices as IOTAProjectManager).RemoveMenuCreatorNotifier(NotifierIndex);
+end;
+
 initialization
   TSetActiveProjectModule.NotifierIndex := -1;
   TSetOEMDir.NotifierIndex := -1;
+  TSearchProject.NotifierIndex := -1;
+  TSearchMissingFile.NotifierIndex := -1;
 finalization
   TSetActiveProjectModule.TearDown;
   TSetOEMDir.TearDown;
+  TSearchProject.TearDown;
+  TSearchMissingFile.TearDown;
 end.
