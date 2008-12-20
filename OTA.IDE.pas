@@ -353,6 +353,7 @@ begin
     (BorlandIDEServices as IOTAMessageServices80).ClearMessageGroup(M);
     G := (BorlandIDEServices as IOTAModuleServices).MainProjectGroup;
     for i := 0 to G.ProjectCount - 1 do begin
+      if not SameText(ExtractFileExt(G.Projects[i].ProjectOptions.TargetName), '.BPL') then Continue;
       bFound := False;
       for j := 0 to G.Projects[i].GetModuleCount - 1 do begin
         bFound := SameText(G.Projects[i].GetModule(j).Name, FText);
