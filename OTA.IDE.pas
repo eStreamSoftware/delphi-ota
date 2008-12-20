@@ -349,8 +349,8 @@ var i, j, lCount: integer;
 begin
   if InputQuery('Search Missing File', 'Please enter file name', FText) then begin
     lCount := 0;
-    M := (BorlandIDEServices as IOTAMessageServices80).AddMessageGroup(Format('Missing "%s" Projects', [FText]));
-    (BorlandIDEServices as IOTAMessageServices80).ClearMessageGroup(M);
+    M := (BorlandIDEServices as IOTAMessageServices).AddMessageGroup(Format('Missing "%s" Projects', [FText]));
+    (BorlandIDEServices as IOTAMessageServices).ClearMessageGroup(M);
     G := (BorlandIDEServices as IOTAModuleServices).MainProjectGroup;
     for i := 0 to G.ProjectCount - 1 do begin
       if not SameText(ExtractFileExt(G.Projects[i].ProjectOptions.TargetName), '.BPL') then Continue;
@@ -361,12 +361,12 @@ begin
           Break;
       end;
       if not bFound then begin
-        (BorlandIDEServices as IOTAMessageServices80).AddTitleMessage(ExtractFileName(G.Projects[i].ProjectOptions.TargetName), M);
+        (BorlandIDEServices as IOTAMessageServices).AddTitleMessage(ExtractFileName(G.Projects[i].ProjectOptions.TargetName), M);
         Inc(lCount);
       end;
     end;
     ShowMessageFmt('%d projects found.', [lCount]);
-    (BorlandIDEServices as IOTAMessageServices80).ShowMessageView(M);
+    (BorlandIDEServices as IOTAMessageServices).ShowMessageView(M);
   end;
 end;
 
