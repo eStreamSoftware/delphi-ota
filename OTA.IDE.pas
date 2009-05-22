@@ -155,6 +155,7 @@ begin
   try
     S.CaseSensitive := False;
     S.Delimiter := '\';
+    S.StrictDelimiter := True;
     S.DelimitedText := aFileName;
     i := S.IndexOf('Project');
     if (i <> -1) and (i < S.Count) then
@@ -291,6 +292,7 @@ begin
   S := TStringList.Create;
   try
     S.Delimiter := '\';
+    S.StrictDelimiter := True;
     S.DelimitedText := aProject;
     if S.Count > 3 then begin
       for i := 1 to 3 do
