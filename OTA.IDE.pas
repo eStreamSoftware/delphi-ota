@@ -110,7 +110,7 @@ begin
       S.CaseSensitive := False;
       S.LoadFromFile(sFile);
       if S.Values['commonname'] <> '' then
-        sHostApplication := Format('%s\%s.exe', [ExtractFilePath(Project.ProjectOptions.TargetName), S.Values['commonname']]);
+        sHostApplication := Format('%s\%s.exe', [ExcludeTrailingPathDelimiter(ExtractFilePath(Project.ProjectOptions.TargetName)), S.Values['commonname']]);
     finally
       S.Free;
     end;
