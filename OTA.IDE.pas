@@ -271,7 +271,11 @@ begin
     while FindNext(F) = 0 do begin
       sFile := Format(
                  '%s\%s\%s\setup.ini',
-                 [sPath, F.Name, {$if CompilerVersion<=18.5}'project'{$else}'project.d12'{$ifend}]
+                 [sPath, F.Name, {$if CompilerVersion<=18.5}'project'
+                                 {$elseif CompilerVersion=20}'project.d12'
+                                 {$elseif CompilerVersion=21}'project.d14'
+                                 {$ifend}
+                 ]
                );
       if FileExists(sFile) then begin
         aFile := sFile;
