@@ -69,6 +69,22 @@ type
     class procedure TearDown;
   end;
 
+  TBuildAllFromHere = class(TNotifierObject, INTAProjectMenuCreatorNotifier)
+  private
+    function ExecuteCommand(const aID: string; const aMenu: TMenu): Boolean;
+        overload;
+    function ExecuteCommand(const aID: string; const aItem: TMenuItem): Boolean;
+        overload;
+    procedure OnMenuClick(Sender: TObject);
+  protected
+    class var NotifierIndex: Integer;
+    function AddMenu(const Ident: string): TMenuItem;
+    function CanHandle(const Ident: string): Boolean;
+  public
+    class procedure Setup;
+    class procedure TearDown;
+  end;
+
 procedure Register;
 
 implementation
@@ -88,6 +104,7 @@ begin
   TSetOEMDir.Setup;
   TSearchProject.Setup;
   TSearchMissingFile.Setup;
+  TBuildAllFromHere.Setup;
   SplashScreenServices.AddPluginBitmap('E Stream Software IDE Expert', 0);
 end;
 
@@ -447,14 +464,83 @@ begin
     (BorlandIDEServices as IOTAProjectManager).RemoveMenuCreatorNotifier(NotifierIndex);
 end;
 
+function TBuildAllFromHere.AddMenu(const Ident: string): TMenuItem;
+begin
+  Result := TMenuItem.Create(nil);
+  Result.Caption := 'Build or Build All From Here';
+  Result.ShortCut := TextToShortCut('Ctrl+`');
+  Result.OnClick := OnMenuClick;
+end;
+
+function TBuildAllFromHere.CanHandle(const Ident: string): Boolean;
+begin
+  Result := SameText(Ident, sProjectContainer);
+end;
+
+function TBuildAllFromHere.ExecuteCommand(const aID: string; const aMenu:
+    TMenu): Boolean;
+var i: integer;
+begin
+  Result := False;
+  for i := 0 to aMenu.Items.Count - 1 do begin
+    Result := ExecuteCommand(aID, aMenu.Items[i]);
+    if Result then
+      Break;
+  end;
+end;
+
+function TBuildAllFromHere.ExecuteCommand(const aID: string; const aItem:
+    TMenuItem): Boolean;
+var i: integer;
+begin
+  Result := False;
+  if not aItem.Enabled then Exit;
+
+  Result := SameText(aItem.Caption, aID);
+  if Result then
+    aItem.Click
+  else begin
+    {$region 'Recursive Search'}
+    for i := 0 to aItem.Count - 1 do begin
+      Result := ExecuteCommand(aID, aItem.Items[i]);
+      if Result then
+        Break;
+    end;
+    {$endregion}
+  end;
+end;
+
+procedure TBuildAllFromHere.OnMenuClick(Sender: TObject);
+var M: TMenu;
+begin
+  M := TMenuItem(Sender).GetParentMenu;
+  if not ExecuteCommand('Build All From &Here', M) then
+    ExecuteCommand('&Build', M);
+end;
+
+class procedure TBuildAllFromHere.Setup;
+var N: INTAProjectMenuCreatorNotifier;
+begin
+  N := TBuildAllFromHere.Create;
+  NotifierIndex := (BorlandIDEServices as IOTAProjectManager).AddMenuCreatorNotifier(N);
+end;
+
+class procedure TBuildAllFromHere.TearDown;
+begin
+  if NotifierIndex <> -1 then
+    (BorlandIDEServices as IOTAProjectManager).RemoveMenuCreatorNotifier(NotifierIndex);
+end;
+
 initialization
   TSetActiveProjectModule.NotifierIndex := -1;
   TSetOEMDir.NotifierIndex := -1;
   TSearchProject.NotifierIndex := -1;
   TSearchMissingFile.NotifierIndex := -1;
+  TBuildAllFromHere.NotifierIndex := -1;
 finalization
   TSetActiveProjectModule.TearDown;
   TSetOEMDir.TearDown;
   TSearchProject.TearDown;
   TSearchMissingFile.TearDown;
+  TBuildAllFromHere.TearDown;
 end.
