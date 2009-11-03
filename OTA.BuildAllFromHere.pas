@@ -14,10 +14,8 @@ type
         overload;
     procedure OnMenuClick(Sender: TObject);
   protected
-  class var
     function AddMenu(const Ident: string): TMenuItem;
     function CanHandle(const Ident: string): Boolean;
-  public
   end;
 
 implementation

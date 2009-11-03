@@ -13,9 +13,7 @@ type
     procedure BeforeCompile(const Project: IOTAProject; var Cancel: Boolean); overload;
     procedure AfterCompile(Succeeded: Boolean); overload;
   protected
-  class var
     function GetModuleName(const aFileName: string): string;
-  public
   end;
 
 implementation
@@ -51,7 +49,6 @@ begin
       S.Free;
     end;
   end;
-
   // Set Host Application in environment variable
   TOTAUtil.SetVariable(StrActiveHostApplication, sHostApplication);
 end;
@@ -96,5 +93,4 @@ end;
 
 initialization
   TOTAFactory.Register(TNotifierOTA_Services.Create(TSetActiveProjectModule));
-
 end.

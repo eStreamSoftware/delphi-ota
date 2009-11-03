@@ -13,7 +13,6 @@ type
     procedure BeforeCompile(const Project: IOTAProject; var Cancel: Boolean); overload;
     procedure AfterCompile(Succeeded: Boolean); overload;
   protected
-  class var
     function GetOEMDir(const aFileName: string; out aOEMDir: string): Boolean;
   public
     procedure AfterConstruction; override;
