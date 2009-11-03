@@ -6,13 +6,12 @@ uses Windows, ToolsAPI, Menus, Messages, Contnrs, Classes;
 
 type
   TNotifierOTA = class abstract
-  private
   protected
-    FClass: TClass;
+    FClass: TInterfacedClass;
     FNotifier: IInterface;
     FNotifierIndex: Integer;
   public
-    constructor Create(const aClass: TClass);
+    constructor Create(const aClass: TInterfacedClass);
     procedure Setup; virtual; abstract;
   end;
 
@@ -30,8 +29,8 @@ type
 
   TOTAFactory = class abstract
   private
-    class var FInstance: TOTAFactory;
     FList: TList;
+    class var FInstance: TOTAFactory;
   public
     procedure AfterConstruction; override;
     procedure BeforeDestruction; override;
@@ -53,7 +52,7 @@ procedure Register;
 
 implementation
 
-uses SysUtils, Registry, FileCtrl, Dialogs;
+uses SysUtils, Registry, FileCtrl;
 
 procedure Register;
 begin
@@ -103,7 +102,7 @@ begin
   FreeAndNil(FInstance);
 end;
 
-constructor TNotifierOTA.Create(const aClass: TClass);
+constructor TNotifierOTA.Create(const aClass: TInterfacedClass);
 begin
   inherited Create;
   FClass := aClass;
@@ -111,10 +110,8 @@ begin
 end;
 
 procedure TNotifierOTA_ProjectManager.Setup;
-var O: TNotifierObject;
 begin
-  O := FClass.Create as TNotifierObject;
-  FNotifier := O as INTAProjectMenuCreatorNotifier;
+  FNotifier := FClass.Create;
   FNotifierIndex := (BorlandIDEServices as IOTAProjectManager).AddMenuCreatorNotifier(FNotifier as INTAProjectMenuCreatorNotifier);
 end;
 
@@ -126,9 +123,8 @@ begin
 end;
 
 procedure TNotifierOTA_Services.Setup;
-var O: TNotifierObject;
 begin
-  O := FClass.Create as TNotifierObject;
+  FNotifier := FClass.Create;
   FNotifierIndex := (BorlandIDEServices as IOTAServices).AddNotifier(FNotifier as IOTAIDENotifier);
 end;
 
