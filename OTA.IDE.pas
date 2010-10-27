@@ -154,6 +154,7 @@ begin
                  [sPath, F.Name, {$if CompilerVersion<=18.5}'project'
                                  {$elseif CompilerVersion=20}'project.d12'
                                  {$elseif CompilerVersion=21}'project.d14'
+                                 {$elseif CompilerVersion=22}'project.d15'
                                  {$ifend}
                  ]
                );
