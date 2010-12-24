@@ -76,8 +76,7 @@ end;
 function TSetOEMDir.GetOEMDir(const aFileName: string; out aOEMDir: string):
     Boolean;
 var N: TStringList;
-    sIniFile: string;
-    o: string;
+    sIniFile, sOEM, sBranch: string;
 begin
   Result := False;
   if TOTAUtil.GetSetupIni(aFileName, sIniFile) then begin
@@ -85,9 +84,15 @@ begin
     try
       N.CaseSensitive := False;
       N.LoadFromFile(sIniFile);
-      o := N.Values['OEM'];
-      if o = '' then o := 'developer';
-      aOEMDir := Format('%s\%s\oem\%s', [GetEnvironmentVariable(StrFactoryDir), N.Values['name'], o]);
+
+      sOEM := N.Values['OEM'];
+      if sOEM = '' then sOEM := 'developer';
+
+      sBranch := N.Values['Branch'];
+      if sBranch <> '' then
+        sBranch := '.' + sBranch;
+
+      aOEMDir := Format('%s\%s\oem%s\%s', [GetEnvironmentVariable(StrFactoryDir), N.Values['name'], sBranch, sOEM]);
       Result := True;
     finally
       N.Free;
