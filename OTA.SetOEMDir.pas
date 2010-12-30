@@ -6,14 +6,17 @@ uses
   OTA.IDE, ToolsAPI;
 
 type
-  TSetOEMDir = class(TNotifierObject, IOTAIDENotifier)
+  TSetOEMDir = class(TNotifierObject, IOTAIDENotifier, IOTAIDENotifier50)
   private
+    function GetOEMDir(const aFileName: string; out aOEMDir: string): Boolean;
+  protected
     procedure FileNotification(NotifyCode: TOTAFileNotification;
       const FileName: string; var Cancel: Boolean);
     procedure BeforeCompile(const Project: IOTAProject; var Cancel: Boolean); overload;
     procedure AfterCompile(Succeeded: Boolean); overload;
-  protected
-    function GetOEMDir(const aFileName: string; out aOEMDir: string): Boolean;
+    procedure BeforeCompile(const Project: IOTAProject; IsCodeInsight: Boolean;
+      var Cancel: Boolean); overload;
+    procedure AfterCompile(Succeeded: Boolean; IsCodeInsight: Boolean); overload;
   public
     procedure AfterConstruction; override;
   end;
@@ -31,6 +34,11 @@ begin
 
 end;
 
+procedure TSetOEMDir.AfterCompile(Succeeded, IsCodeInsight: Boolean);
+begin
+
+end;
+
 procedure TSetOEMDir.AfterConstruction;
 var s: string;
 begin
@@ -43,16 +51,24 @@ begin
 end;
 
 procedure TSetOEMDir.BeforeCompile(const Project: IOTAProject;
-  var Cancel: Boolean);
+  IsCodeInsight: Boolean; var Cancel: Boolean);
 var sOEMDir, sEnvOEMDir: string;
     M: IOTAModuleServices;
 begin
+  if IsCodeInsight then Exit;
+  
   M := BorlandIDEServices as IOTAModuleServices;
   if GetOEMDir(M.MainProjectGroup.FileName, sOEMDir) then begin
     sEnvOEMDir := GetEnvironmentVariable(StrOEMDir);
     if sEnvOEMDir <> sOEMDir then
       TOTAUtil.SetVariable(StrOEMDir, sOEMDir);
   end;
+end;
+
+procedure TSetOEMDir.BeforeCompile(const Project: IOTAProject;
+  var Cancel: Boolean);
+begin
+
 end;
 
 procedure TSetOEMDir.FileNotification(NotifyCode: TOTAFileNotification;
@@ -102,5 +118,4 @@ end;
 
 initialization
   TOTAFactory.Register(TNotifierOTA_Services.Create(TSetOEMDir));
-
 end.
