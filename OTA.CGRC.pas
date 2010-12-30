@@ -68,6 +68,7 @@ var F: string;
     M: IOTAModuleInfo;
 begin
   if IsCodeInsight then Exit;
+  if FRCFiles.Count = 0 then Exit;  
 
   // Add rc files back to project
   for F in FRCFiles do
