@@ -27,6 +27,8 @@ type
     procedure BeforeDestruction; override;
   end;
 
+  TOTAFactoryClass = class of TOTAFactory;
+
   TOTAFactory = class abstract
   private
     FList: TList;
@@ -35,7 +37,7 @@ type
     procedure AfterConstruction; override;
     procedure BeforeDestruction; override;
     function GetList: TList;
-    class procedure Register(const aNotifier: TNotifierOTA);
+    class function Register(const aNotifier: TNotifierOTA): TOTAFactoryClass;
     class procedure Setup;
     class procedure SetupAll;
     class procedure TearDown;
@@ -80,9 +82,10 @@ begin
   Result := FList;
 end;
 
-class procedure TOTAFactory.Register(const aNotifier: TNotifierOTA);
+class function TOTAFactory.Register(const aNotifier: TNotifierOTA): TOTAFactoryClass;
 begin
   FInstance.GetList.Add(aNotifier);
+  Result := Self;
 end;
 
 class procedure TOTAFactory.Setup;
@@ -212,8 +215,6 @@ end;
 
 initialization
   TOTAFactory.Setup;
-
 finalization
   TOTAFactory.TearDown;
-
 end.
