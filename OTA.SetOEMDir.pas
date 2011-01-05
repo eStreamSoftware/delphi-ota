@@ -3,7 +3,7 @@ unit OTA.SetOEMDir;
 interface
 
 uses
-  OTA.IDE, ToolsAPI;
+  ToolsAPI;
 
 type
   TSetOEMDir = class(TNotifierObject, IOTAIDENotifier, IOTAIDENotifier50)
@@ -23,7 +23,7 @@ type
 
 implementation
 
-uses Windows, Classes, FileCtrl, SysUtils;
+uses Windows, Classes, FileCtrl, SysUtils, OTA.IDE;
 
 resourcestring
   StrFactoryDir            = 'FactoryDir';
@@ -116,6 +116,4 @@ begin
   end;
 end;
 
-initialization
-  TOTAFactory.Register(TNotifierOTA_Services.Create(TSetOEMDir));
 end.

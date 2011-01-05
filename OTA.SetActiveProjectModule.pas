@@ -3,7 +3,7 @@ unit OTA.SetActiveProjectModule;
 interface
 
 uses
-  OTA.IDE, ToolsAPI;
+  ToolsAPI;
 
 type
   TSetActiveProjectModule = class(TNotifierObject, IOTAIDENotifier, IOTAIDENotifier50)
@@ -21,7 +21,7 @@ type
 
 implementation
 
-uses SysUtils, Classes;    
+uses SysUtils, Classes, OTA.IDE;    
 
 resourcestring
   StrActiveProjectModule   = 'ActiveProjectModule';
@@ -108,6 +108,4 @@ begin
 
 end;
 
-initialization
-  TOTAFactory.Register(TNotifierOTA_Services.Create(TSetActiveProjectModule));
 end.

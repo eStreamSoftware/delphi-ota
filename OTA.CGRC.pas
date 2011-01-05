@@ -48,7 +48,7 @@ type
 
 implementation
 
-uses SysUtils, OTA.IDE, Console;
+uses SysUtils, Console;
 
 procedure TResourceCompiler_CGRC.AfterCompile(Succeeded: Boolean);
 begin
@@ -173,6 +173,4 @@ begin
   V.AddTitleMessage(aText, G);
 end;
 
-initialization
-  TOTAFactory.Register(TNotifierOTA_Services.Create(TResourceCompiler_CGRC));
 end.

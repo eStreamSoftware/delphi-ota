@@ -3,7 +3,7 @@ unit OTA.SearchMissingFile;
 interface
 
 uses
-  OTA.IDE, ToolsAPI, Menus;
+  ToolsAPI, Menus;
 
 type
   TSearchMissingFile = class(TNotifierObject, INTAProjectMenuCreatorNotifier)
@@ -67,8 +67,5 @@ begin
     (BorlandIDEServices as IOTAMessageServices).ShowMessageView(M);
   end;
 end;
-
-initialization
-  TOTAFactory.Register(TNotifierOTA_ProjectManager.Create(TSearchMissingFile));
 
 end.

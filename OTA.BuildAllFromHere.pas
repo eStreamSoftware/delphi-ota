@@ -3,7 +3,7 @@ unit OTA.BuildAllFromHere;
 interface
 
 uses
-  OTA.IDE, ToolsAPI, Menus;
+  ToolsAPI, Menus;
 
 type
   TBuildAllFromHere = class(TNotifierObject, INTAProjectMenuCreatorNotifier)
@@ -75,8 +75,5 @@ begin
   if not ExecuteCommand('Build All From &Here', M) then
     ExecuteCommand('&Build', M);
 end;
-
-initialization
-  TOTAFactory.Register(TNotifierOTA_ProjectManager.Create(TBuildAllFromHere));
 
 end.

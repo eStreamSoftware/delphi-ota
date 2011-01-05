@@ -3,7 +3,7 @@ unit OTA.SearchProject;
 interface
 
 uses
-  OTA.IDE, ToolsAPI, Menus;
+  ToolsAPI, Menus;
 
 type
   TSearchProject = class(TNotifierObject, INTAProjectMenuCreatorNotifier)
@@ -64,8 +64,5 @@ begin
     end;
   end;
 end;
-
-initialization
-  TOTAFactory.Register(TNotifierOTA_ProjectManager.Create(TSearchProject));
 
 end.
