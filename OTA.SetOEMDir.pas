@@ -1,5 +1,7 @@
 unit OTA.SetOEMDir;
 
+{$WARN UNIT_PLATFORM OFF}
+
 interface
 
 uses
