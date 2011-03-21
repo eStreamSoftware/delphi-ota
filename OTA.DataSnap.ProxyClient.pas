@@ -107,12 +107,12 @@ begin
     C.EnableComments := True;
     C.EnableWhitespaces := True;
 
-    C.SetText(aScript);
+    C.SetText(AnsiString(aScript));
     while C.CurrTokenID <> CSTI_EOF do
     begin
       T.Token := C.CurrTokenID;
       T.TokenPos := C.CurrTokenPos;
-      T.OriginalToken := C.OriginalToken;
+      T.OriginalToken := string(C.OriginalToken);
 
       FTokens.Add(T);
       C.Next;
