@@ -54,7 +54,7 @@ procedure Register;
 
 implementation
 
-uses SysUtils, Registry, FileCtrl;
+uses SysUtils, Registry;
 
 procedure Register;
 begin
