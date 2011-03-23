@@ -36,7 +36,7 @@ end;
 
 function TSearchMissingFile.CanHandle(const Ident: string): Boolean;
 begin
-  Result := SameText(Ident, sProjectContainer);
+  Result := SameText(Ident, {$if CompilerVersion < 21}sProjectContainer{$else}sProjectGroupContainer{$ifend});
 end;
 
 procedure TSearchMissingFile.OnMenuClick(Sender: TObject);
