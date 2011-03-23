@@ -1,4 +1,4 @@
-unit OTA.RemoveDefaultResource;
+unit OTA.RemoveDefaultResource experimental;
 
 interface
 
