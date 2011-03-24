@@ -184,8 +184,13 @@ begin
 end;
 
 function TAddInterface_DataSnap_ProxyClient.CanHandle(const Ident: string): Boolean;
+var sFile: string;
 begin
   Result := SameText(Ident, sFileContainer);
+  if Result then begin
+    (BorlandIDEServices as IOTAProjectManager).GetCurrentSelection(sFile);
+    Result := SameText(ExtractFileExt(sFile), '.pas');
+  end;
 end;
 
 procedure TAddInterface_DataSnap_ProxyClient.DataSnapPatch(L: TTokenList; AddPatch:
