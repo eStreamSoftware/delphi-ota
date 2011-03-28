@@ -2,7 +2,7 @@ unit OTA.IDE;
 
 interface
 
-uses Windows, ToolsAPI, Menus, Messages, Contnrs, Classes;
+uses Windows, Classes, ToolsAPI;
 
 type
   TNotifierOTA = class abstract
@@ -13,12 +13,6 @@ type
   public
     constructor Create(const aClass: TInterfacedClass);
     procedure Setup; virtual; abstract;
-  end;
-
-  TNotifierOTA_ProjectManager = class(TNotifierOTA)
-  public
-    procedure Setup; override;
-    procedure BeforeDestruction; override;
   end;
 
   TNotifierOTA_Services = class(TNotifierOTA)
@@ -110,19 +104,6 @@ begin
   inherited Create;
   FClass := aClass;
   FNotifierIndex := -1;
-end;
-
-procedure TNotifierOTA_ProjectManager.Setup;
-begin
-  FNotifier := FClass.Create;
-  FNotifierIndex := (BorlandIDEServices as IOTAProjectManager).AddMenuCreatorNotifier(FNotifier as INTAProjectMenuCreatorNotifier);
-end;
-
-procedure TNotifierOTA_ProjectManager.BeforeDestruction;
-begin
-  inherited;
-  if FNotifierIndex <> -1 then
-    (BorlandIDEServices as IOTAProjectManager).RemoveMenuCreatorNotifier(FNotifierIndex);
 end;
 
 procedure TNotifierOTA_Services.Setup;
