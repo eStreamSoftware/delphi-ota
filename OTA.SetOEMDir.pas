@@ -25,7 +25,7 @@ type
 
 implementation
 
-uses Windows, Classes, FileCtrl, SysUtils, OTA.IDE;
+uses Classes, FileCtrl, SysUtils, OTA.IDE;
 
 resourcestring
   StrFactoryDir            = 'FactoryDir';
