@@ -3,7 +3,7 @@ unit OTA.DataSnap.ProxyClient;
 interface
 
 uses
-  ToolsAPI, SysUtils, Generics.Collections, uPSUtils, Menus, OTA.IDE;
+  SysUtils, Classes, ToolsAPI, Generics.Collections, uPSUtils;
 
 type
   TToken = record
@@ -41,24 +41,21 @@ type
     property Tokens: TTokenList read FTokens;
   end;
 
-  TAddInterface_DataSnap_ProxyClient = class(TNotifierObject,
-      INTAProjectMenuCreatorNotifier)
+  TAddInterface_DataSnap_ProxyClient = class(TNotifierObject, IOTAProjectMenuItemCreatorNotifier)
   private
     const c_Token_NextLineIndent2 = #$D#$A'  ';
     const c_Token_NextLineIndent4 = #$D#$A'    ';
     procedure DataSnapPatch(L: TTokenList; AddPatch: TProc<TToken, Boolean>);
-    procedure OnMenuClick(Sender: TObject);
     procedure VisitClass(const E: TEnumerator<TToken>; const aClassToken: TToken;
         AddPatch: TProc<TToken, Boolean>);
   protected
-    function AddMenu(const Ident: string): TMenuItem;
-    function CanHandle(const Ident: string): Boolean;
-  public
+    procedure AddMenu(const Project: IOTAProject; const IdentList: TStrings;
+      const ProjectManagerMenuList: IInterfaceList; IsMultiSelect: Boolean);
   end;
 
 implementation
 
-uses Classes, IOUtils;
+uses IOUtils, OTA.IDE140;
 
 class function TToken.Create(aToken: TPSPasToken; aTokenPos: integer; aOriginalToken:
     string): TToken;
@@ -176,25 +173,66 @@ begin
   end;
 end;
 
-function TAddInterface_DataSnap_ProxyClient.AddMenu(const Ident: string): TMenuItem;
+procedure TAddInterface_DataSnap_ProxyClient.AddMenu(
+  const Project: IOTAProject; const IdentList: TStrings;
+  const ProjectManagerMenuList: IInterfaceList; IsMultiSelect: Boolean);
+var S: string;
+    bIsPasFile: boolean;
+    m: IOTAProjectManagerMenu;
 begin
-  Result := TMenuItem.Create(nil);
-  Result.Caption := 'Add Interface for DataSnap Proxy Client';
-  Result.OnClick := OnMenuClick;
-end;
+  if IdentList.IndexOf(sFileContainer) = -1 then Exit;
+  if IdentList.IndexOf(sOptionSet) <> -1 then Exit;
+  if IdentList.IndexOf(sDirectoryContainer) <> -1 then Exit;
 
-function TAddInterface_DataSnap_ProxyClient.CanHandle(const Ident: string): Boolean;
-var sFile: string;
-begin
-  Result := SameText(Ident, sFileContainer);
-  if Result then begin
-    (BorlandIDEServices as IOTAProjectManager).GetCurrentSelection(sFile);
-    Result := SameText(ExtractFileExt(sFile), '.pas');
+  bIsPasFile := False;
+  for S in IdentList do begin
+    if not FileExists(S) then Continue;
+    if SameText(ExtractFileExt(S), '.pas') then begin
+      bIsPasFile := True;
+      Break;
+    end;
   end;
+
+  if not bIsPasFile then Exit;
+
+  m := TNotifierOTA_ProjectManagerMenu.Create;
+  m.IsMultiSelectable := True;
+  m.Caption := 'Add DataSnap Proxy Client Interface';
+
+  (m as IOTAProjectManagerMenuExecute).Execute :=
+    procedure (aContext: IOTAProjectMenuContext)
+    var sCode: string;
+        C: TPascalParser_Patchable;
+        M: IOTAModule;
+        E: IOTASourceEditor;
+        B: TBytes;
+        W: IOTAEditWriter;
+    begin
+      M := (BorlandIDEServices as IOTAModuleServices).OpenModule(aContext.Ident);     //Open file editor
+      M.Show;
+      E := M.CurrentEditor as IOTASourceEditor;
+
+      C := TPascalParser_Patchable.Create;
+      try
+        sCode := TFile.ReadAllText(aContext.Ident);              //Read text from file
+        C.Parse(sCode);                                          //convert class to interface
+        B := TEncoding.UTF8.GetBytes(C.Patch(DataSnapPatch));    //String to TBytes
+        SetLength(B, Length(B) + 1);                             //Reserve a place for null terminated
+        B[Length(B) - 1] := 0;                                   //Set Last position as null terminated
+        W := E.CreateWriter;
+        W.DeleteTo(Length(sCode));                               //delete all code in the editor
+        W.Insert(PAnsiChar(B));                                  //insert the new code to the editor
+        M.CurrentEditor.MarkModified;                            //make editor in modified mode
+      finally
+        C.Free;
+      end;
+    end;
+
+  ProjectManagerMenuList.Add(m);
 end;
 
-procedure TAddInterface_DataSnap_ProxyClient.DataSnapPatch(L: TTokenList; AddPatch:
-    TProc<TToken, Boolean>);
+procedure TAddInterface_DataSnap_ProxyClient.DataSnapPatch(L: TTokenList;
+    AddPatch: TProc<TToken, Boolean>);
 var
   T: TToken;
   E: TEnumerator<TToken>;
@@ -249,35 +287,6 @@ begin
     E.Free;
     S.Free;
     lClassList.Free;
-  end;
-end;
-
-procedure TAddInterface_DataSnap_ProxyClient.OnMenuClick(Sender: TObject);
-var lSelectedFile, lCode: string;
-    C: TPascalParser_Patchable;
-    M: IOTAModule;
-    E: IOTASourceEditor;
-    lBytes: TBytes;
-    W: IOTAEditWriter;
-begin
-  (BorlandIDEServices as IOTAProjectManager).GetCurrentSelection(lSelectedFile); //Get current selected file
-  M := (BorlandIDEServices as IOTAModuleServices).OpenModule(lSelectedFile);     //Open file editor
-  M.Show;
-  E := M.CurrentEditor as IOTASourceEditor;
-
-  C := TPascalParser_Patchable.Create;
-  try
-    lCode := TFile.ReadAllText(lSelectedFile);                    //Read text from file
-    C.Parse(lCode);                                               //convert class to interface
-    lBytes := TEncoding.UTF8.GetBytes(C.Patch(DataSnapPatch));    //String to TBytes
-    SetLength(lBytes, Length(lBytes) + 1);                        //Reserve a place for null terminated
-    lBytes[Length(lBytes) - 1] := 0;                              //Set Last position as null terminated
-    W := E.CreateWriter;
-    W.DeleteTo(Length(lCode));                                    //delete all code in the editor
-    W.Insert(PAnsiChar(lBytes));                                  //insert the new code to the editor
-    M.CurrentEditor.MarkModified;                                 //make editor in modified mode
-  finally
-    C.Free;
   end;
 end;
 
@@ -337,8 +346,5 @@ begin
     S.Free;
   end;
 end;
-
-initialization
-  TOTAFactory.Register(TNotifierOTA_ProjectManager.Create(TAddInterface_DataSnap_ProxyClient));
 
 end.
