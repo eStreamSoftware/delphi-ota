@@ -2,21 +2,29 @@ unit OTA.Register;
 
 interface
 
+(*
+This is the list of IDE version numbers that are being used in various OTAPI interfaces:
+
+60 = Delphi 7
+80 = Delphi 8
+90 = Delphi 2005
+100 = Delphi 2006
+110 = Delphi 2007
+120 = Delphi 2009
+140 = Delphi 2010
+145 = Delphi XE
+
+*)
+
 implementation
 
-uses OTA.IDE, OTA.BuildAllFromHere, OTA.SearchMissingFile, OTA.SearchProject,
-     OTA.SetActiveProjectModule, OTA.SetOEMDir, OTA.RemoveDefaultResource
-     {$if CompilerVersion = 18.5}, OTA.CGRC {$ifend}
+uses OTA.IDE,
+     OTA.SetActiveProjectModule, OTA.SetOEMDir
      ;
 
 initialization
   TOTAFactory
-    .Register(TNotifierOTA_ProjectManager.Create(TBuildAllFromHere))
-    .Register(TNotifierOTA_ProjectManager.Create(TSearchMissingFile))
-    .Register(TNotifierOTA_ProjectManager.Create(TSearchProject))
-    {$ifdef DEBUG}.Register(TNotifierOTA_ProjectManager.Create(TRemoveDefaultResource)){$endif}
     .Register(TNotifierOTA_Services.Create(TSetActiveProjectModule))
     .Register(TNotifierOTA_Services.Create(TSetOEMDir))
-    {$if CompilerVersion = 18.5}.Register(TNotifierOTA_Services.Create(TResourceCompiler_CGRC)){$ifend}
     ;
 end.
