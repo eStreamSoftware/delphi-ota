@@ -183,7 +183,7 @@ begin
     R.RootKey := HKEY_CURRENT_USER;
     F := (BorlandIDEServices as IOTAServices).GetBaseRegistryKey + '\Environment Variables';
     if R.OpenKey(F, True) then begin
-      if R.ReadString(aName) <> aValue then begin
+      if not R.KeyExists(aName) or (R.ReadString(aName) <> aValue) then begin
         R.WriteString(aName, aValue);
         SetEnvironmentVariable(PChar(aName), PChar(aValue));
       end;
