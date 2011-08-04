@@ -28,8 +28,7 @@ uses SysUtils, OTA.IDE140;
 procedure T_ProjectGroup_ConfigurationBuild.AddMenu(const Project: IOTAProject; const
     IdentList: TStrings; const ProjectManagerMenuList: IInterfaceList;
     IsMultiSelect: Boolean);
-var S: string;
-    m: IOTAProjectManagerMenu;
+var m: IOTAProjectManagerMenu;
 begin
   if IdentList.IndexOf(sProjectGroupContainer) = -1 then Exit;
   if (BorlandIDEServices as IOTAModuleServices).MainProjectGroup = nil then Exit;
@@ -79,8 +78,7 @@ end;
 procedure T_Project_ConfigurationBuild.AddMenu(const Project: IOTAProject;
   const IdentList: TStrings; const ProjectManagerMenuList: IInterfaceList;
   IsMultiSelect: Boolean);
-var S: string;
-    m: IOTAProjectManagerMenu;
+var m: IOTAProjectManagerMenu;
 begin
   if IdentList.IndexOf(sProjectContainer) = -1 then Exit;
 
@@ -106,14 +104,14 @@ begin
     procedure (aContext: IOTAProjectMenuContext)
     var C: IOTAProjectOptionsConfigurations;
         A: IOTABuildConfiguration;
-        i, j: integer;
+        i: integer;
     begin
       C := aContext.Project.ProjectOptions as IOTAProjectOptionsConfigurations;
       A := C.ActiveConfiguration;
       try
-        for j := 0 to C.ConfigurationCount - 1 do begin
-          if not SameText(C.Configurations[j].Name, aConfiguration) then Continue;
-          C.ActiveConfiguration := C.Configurations[j];
+        for i := 0 to C.ConfigurationCount - 1 do begin
+          if not SameText(C.Configurations[i].Name, aConfiguration) then Continue;
+          C.ActiveConfiguration := C.Configurations[i];
           aContext.Project.ProjectBuilder.BuildProject(cmOTABuild, False, i = 0);
         end;
       finally
