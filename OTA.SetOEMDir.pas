@@ -20,7 +20,6 @@ type
       var Cancel: Boolean); overload;
     procedure AfterCompile(Succeeded: Boolean; IsCodeInsight: Boolean); overload;
   public
-    procedure AfterConstruction; override;
   end;
 
 implementation
@@ -28,7 +27,6 @@ implementation
 uses Classes, FileCtrl, SysUtils, OTA.IDE;
 
 resourcestring
-  StrFactoryDir            = 'FactoryDir';
   StrOEMDir                = 'OEMDir';
 
 procedure TSetOEMDir.AfterCompile(Succeeded: Boolean);
@@ -39,17 +37,6 @@ end;
 procedure TSetOEMDir.AfterCompile(Succeeded, IsCodeInsight: Boolean);
 begin
 
-end;
-
-procedure TSetOEMDir.AfterConstruction;
-var s: string;
-begin
-  inherited;
-  s := GetEnvironmentVariable(StrFactoryDir);
-  if (s = '') or not DirectoryExists(s) then begin
-    if SelectDirectory(Format('Choose Factory Folder (%s)', [StrFactoryDir]), '', s) then
-      TOTAUtil.SetVariable(StrFactoryDir, s);
-  end;
 end;
 
 procedure TSetOEMDir.BeforeCompile(const Project: IOTAProject;
@@ -110,7 +97,7 @@ begin
       if sBranch <> '' then
         sBranch := '.' + sBranch;
 
-      aOEMDir := Format('%s\%s\oem%s\%s', [GetEnvironmentVariable(StrFactoryDir), N.Values['name'], sBranch, sOEM]);
+      aOEMDir := Format('..\..\oem%s\%s', [sBranch, sOEM]);
       Result := True;
     finally
       N.Free;
