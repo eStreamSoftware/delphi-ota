@@ -109,6 +109,8 @@ begin
 
     if SameText(sBranch, 'master') then Exit;
     Result := sBranch;
+    if Result <> '' then
+      Result := '.' + Result;
   finally
     S.Free;
   end;
