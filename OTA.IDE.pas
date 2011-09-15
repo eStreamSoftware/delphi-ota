@@ -139,6 +139,7 @@ begin
                                  {$elseif CompilerVersion=20}'project.d12'
                                  {$elseif CompilerVersion=21}'project.d14'
                                  {$elseif CompilerVersion=22}'project.d15'
+                                 {$elseif CompilerVersion=23}'project.d16'
                                  {$ifend}
                  ]
                );
