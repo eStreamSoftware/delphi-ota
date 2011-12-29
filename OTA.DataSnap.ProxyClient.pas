@@ -268,7 +268,7 @@ begin
     {$region 'Implementation'}
     {$region 'Uses'}
     E.MoveNext;
-    AddPatch(TToken.Create(CSTI_Identifier, E.Current.TokenPos, #13#10#13#10'uses Rtti {$ifdef estream_core}, DataSnap.ProxyClient.Helper{$endif};'), True);
+    AddPatch(TToken.Create(CSTI_Identifier, E.Current.TokenPos, #13#10#13#10'uses Rtti, DataSnap.ProxyClient.Helper;'), True);
     {$endregion}
     {$region 'Add Constructor Implementation'}
     while E.MoveNext and (E.Current.Token <> CSTII_constructor) do;
