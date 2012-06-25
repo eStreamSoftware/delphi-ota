@@ -80,6 +80,7 @@ type
     WM_Reopen_Module = WM_APP;
   private
     FHandle: THandle;
+    FIgnorePrompt: boolean;
     FModuleNotifiers: TStringIntList;
     FViewAsTexts: TStringList;
     function GetModule(aFileName: string): IOTAModule;
@@ -96,7 +97,7 @@ type
 
 implementation
 
-uses SysUtils, ActiveX, Dialogs, Forms;
+uses SysUtils, ActiveX, Controls, Dialogs, Forms;
 
 {$if CompilerVersion = 18.5}
 procedure CheckOSError(LastError: Integer);
@@ -306,6 +307,7 @@ procedure TFixedFormScaled.AfterConstruction;
 begin
   inherited;
   FHandle := AllocateHWnd(WndProc);
+  FIgnorePrompt := False;
   FModuleNotifiers := TStringIntList.Create;
   FViewAsTexts := TStringList.Create;
 end;
@@ -336,6 +338,8 @@ var M: IOTAModule;
     o: IOTANotifier;
     iNotifier: integer;
     sPasFile: string;
+    sMsg: string;
+    iMsg: TModalResult;
 begin
   case NotifyCode of
     ofnFileOpened:
@@ -358,9 +362,20 @@ begin
                 oPPI := F.GetPixelsPerInch(iPPI);
                 if (iPPI <> oPPI) {IDE has re-scaled form} then begin
                   Log('Re-scaled form detected: ' + ExtractFileName(Editor.FileName));
-                  F.Unscaled;
-                  TUnscaleFiles.Instance.Add(FileName, oPPI);
-                  PostMessage(FHandle, WM_Reopen_Module, WParam(F), 0);
+                  sMsg := Format(
+                            'Form %s has been re-scale from PixelsPerInch (PPI) %d to %d.'#13'Do you want to keep original PPI (%d)?' +
+                            #13#13'Note: Press Ignore button will not prompt this dialog anymore and will always keep original PPI.',
+                            [ExtractFileName(Editor.FileName), oPPI, iPPI, oPPI]
+                          );
+                  if not FIgnorePrompt then begin
+                    iMsg := MessageDlg(sMsg, mtConfirmation, [mbYes, mbNo, mbIgnore], 0);
+                    FIgnorePrompt := iMsg = mrIgnore;
+                  end;
+                  if FIgnorePrompt or (iMsg = mrYes) then begin
+                    F.Unscaled;
+                    TUnscaleFiles.Instance.Add(FileName, oPPI);
+                    PostMessage(FHandle, WM_Reopen_Module, WParam(F), 0);
+                  end;
                 end;
               end else if TUnscaleFiles.Instance.Exists(FileName) {Add controller to re-scaled form editor} then begin
                 Log('Add controller to form: ' + ExtractFileName(Editor.FileName));
