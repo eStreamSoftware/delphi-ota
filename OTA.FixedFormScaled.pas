@@ -5,22 +5,27 @@ interface
 uses Classes, Windows, Messages, ToolsAPI;
 
 type
-  TUnscaleFiles = class abstract
+  TStringIntList = class
   strict private
-    class var FInstance: TUnscaleFiles;
-  strict private
-    FList: TStringList;
     FLocked: boolean;
+  private
+    FList: TStringList;
   public
     procedure AfterConstruction; override;
-    procedure Add(aFile: string; const aOriginalPPI: Integer);
-    procedure Delete(aFile: string);
-    function Exists(aFile: string): boolean;
-    function GetOriginalPPI(aFile: string; out aOriginalPPI: Integer): boolean;
+    procedure BeforeDestruction; override;
+    procedure Add(aStr: string; aInt: integer);
+    function Delete(aStr: string; out aInt: Integer): Boolean;
+    function Exists(aStr: string): boolean;
+    function GetInt(aStr: string; out aInt: Integer): boolean;
     procedure Lock;
     procedure Unlock;
+  end;
+
+  TUnscaleFiles = class abstract
+  strict private
+    class var FInstance: TStringIntList;
   public
-    class function Instance: TUnscaleFiles;
+    class function Instance: TStringIntList;
   end;
 
   TDelphiFormFiles = class
@@ -40,26 +45,44 @@ type
     property SourceFile: string read FSourceFile;
   end;
 
-  TForm_PPI_Controller = class(TNotifierObject, IOTANotifier, IOTAFormNotifier)
+  TForm_PPI_Controller = class(TNotifierObject, IOTANotifier, IOTAModuleNotifier, IOTAFormNotifier)
+  const
+    WM_Reopen_Module = WM_APP;
+    WM_Revert_PPI = WM_APP + 1;
+    WM_Revert_Scaled = WM_APP + 2;
   private
+    FEditor: IOTAFormEditor;
     FForm: IOTAComponent;
     FModuleFileName: string;
     FHandle: THandle;
+    FSaveToStorage: boolean;
     procedure WndProc(var Message: TMessage);
-  protected
+  protected // IOTANotifier
+    procedure BeforeSave;
+    procedure Destroyed;
+  protected // IOTAModuleNotifier
+    function CheckOverwrite: Boolean;
+    procedure ModuleRenamed(const NewName: string);
+  protected // IOTAFormNotifier
     procedure FormActivated;
     procedure FormSaving;
     procedure ComponentRenamed(ComponentHandle: TOTAHandle;
       const OldName, NewName: string);
   public
-    constructor Create(const aForm: IOTAComponent; aModuleFileName: string);
+    constructor Create(const aEditor: IOTAFormEditor; const aForm: IOTAComponent;
+        aModuleFileName: string);
     procedure AfterConstruction; override;
     procedure BeforeDestruction; override;
   end;
 
   TFixedFormScaled = class(TNotifierObject, IOTANotifier, IOTAIDENotifier)
+  const
+    WM_Reopen_Module = WM_APP;
   private
     FHandle: THandle;
+    FModuleNotifiers: TStringIntList;
+    FViewAsTexts: TStringList;
+    function GetModule(aFileName: string): IOTAModule;
     procedure WndProc(var Message: TMessage);
   protected
     procedure FileNotification(NotifyCode: TOTAFileNotification; const FileName:
@@ -73,65 +96,47 @@ type
 
 implementation
 
-uses SysUtils;
+uses SysUtils, ActiveX, Dialogs, Forms;
+
+{$if CompilerVersion = 18.5}
+procedure CheckOSError(LastError: Integer);
+begin
+  if LastError <> 0 then
+    RaiseLastOSError(LastError);
+end;
+{$ifend}
 
 procedure Log(aMsg: string);
 begin
   (BorlandIDEServices as IOTAMessageServices).AddTitleMessage(Format('[%s] %s', [ExtractFileName(GetModuleName(HInstance)), aMsg]));
 end;
 
-procedure TUnscaleFiles.Add(aFile: string; const aOriginalPPI: Integer);
+procedure ShowContent(S: IStream);
+var B: TBytes;
+    T: tagSTATSTG;
+    iRead: Integer;
+    iPos: Int64;
 begin
-  if FLocked then Exit;
-  FList.Values[aFile] := IntToStr(aOriginalPPI);
+  if (S.Stat(T, STATFLAG_NONAME) = S_OK) then begin
+    SetLength(B, T.cbSize);
+    CheckOSError(S.Seek(0, STREAM_SEEK_SET, iPos));
+    CheckOSError(S.Read(@B[0], T.cbSize, @iRead));
+    if iRead = T.cbSize then
+      {$if CompilerVersion > 18.5}(StringOf(B));{$ifend}
+  end;
 end;
 
-procedure TUnscaleFiles.AfterConstruction;
+procedure LogModules;
+var M: IOTAModuleServices;
+    i: Integer;
+    sExt: string;
 begin
-  inherited;
-  FList := TStringList.Create;
-  FLocked := False;
-end;
-
-procedure TUnscaleFiles.Delete(aFile: string);
-var i: integer;
-begin
-  if FLocked then Exit;
-
-  i := FList.IndexOfName(aFile);
-  if i <> -1 then
-    FList.Delete(i);
-
-  if FList.Count = 0 then
-    FreeAndNil(FInstance);
-end;
-
-function TUnscaleFiles.Exists(aFile: string): boolean;
-begin
-  Result := FList.IndexOfName(aFile) <> -1;
-end;
-
-function TUnscaleFiles.GetOriginalPPI(aFile: string;
-  out aOriginalPPI: Integer): boolean;
-begin
-  Result := TryStrToInt(FList.Values[aFile], aOriginalPPI);
-end;
-
-class function TUnscaleFiles.Instance: TUnscaleFiles;
-begin
-  if FInstance = nil then
-    FInstance := TUnscaleFiles.Create;
-  Result := FInstance;
-end;
-
-procedure TUnscaleFiles.Lock;
-begin
-  FLocked := True;
-end;
-
-procedure TUnscaleFiles.Unlock;
-begin
-  FLocked := False;
+  M := BorlandIDEServices as IOTAModuleServices;
+  for i := 0 to M.ModuleCount - 1 do begin
+    sExt := ExtractFileExt(M.Modules[i].FileName);
+    if SameText(sExt, '.pas') or SameText(sExt, '.dfm') then
+      Log('Module: ' + M.Modules[i].FileName);
+  end;
 end;
 
 procedure TDelphiFormFiles.BeforeDestruction;
@@ -214,18 +219,35 @@ begin
   DeallocateHWnd(FHandle);
 end;
 
+procedure TForm_PPI_Controller.BeforeSave;
+begin
+  FSaveToStorage := True;
+end;
+
+function TForm_PPI_Controller.CheckOverwrite: Boolean;
+begin
+
+end;
+
 procedure TForm_PPI_Controller.ComponentRenamed(ComponentHandle: TOTAHandle;
   const OldName, NewName: string);
 begin
 
 end;
 
-constructor TForm_PPI_Controller.Create(const aForm: IOTAComponent; aModuleFileName:
-    string);
+constructor TForm_PPI_Controller.Create(const aEditor: IOTAFormEditor; const
+    aForm: IOTAComponent; aModuleFileName: string);
 begin
   inherited Create;
+  FEditor := aEditor;
   FForm := aForm;
   FModuleFileName := aModuleFileName;
+  FSaveToStorage := False;
+end;
+
+procedure TForm_PPI_Controller.Destroyed;
+begin
+
 end;
 
 procedure TForm_PPI_Controller.FormActivated;
@@ -234,22 +256,44 @@ begin
 end;
 
 procedure TForm_PPI_Controller.FormSaving;
-var i: Integer;
+var oPPi, nPPI, oScaled, nScaled: Integer;
 begin
-  if TUnscaleFiles.Instance.GetOriginalPPI(FModuleFileName, i) then
-    FForm.SetPropByName('PixelsPerInch', i);
+  if TUnscaleFiles.Instance.GetInt(FModuleFileName, oPPI) then begin
+    FForm.GetPropValueByName('PixelsPerInch', nPPI);
+    FForm.GetPropValueByName('Scaled', oScaled);
 
-  i := 1;
-  FForm.SetPropByName('Scaled', i);
+    if oPPI <> nPPI then begin
+      FForm.SetPropByName('PixelsPerInch', oPPI);
+      if not FSaveToStorage then PostMessage(FHandle, WM_Revert_PPI, nPPI, 0);
+    end;
 
-  PostMessage(FHandle, WM_APP, 0, 0);
+    nScaled := 1;
+    if oScaled <> nScaled then begin
+      FForm.SetPropByName('Scaled', nScaled);
+      if not FSaveToStorage then PostMessage(FHandle, WM_Revert_Scaled, oScaled, 0);
+    end;
+
+    if FSaveToStorage then begin
+      PostMessage(FHandle, WM_Reopen_Module, 0, 0);
+      FSaveToStorage := False;
+    end;
+  end;
+end;
+
+procedure TForm_PPI_Controller.ModuleRenamed(const NewName: string);
+begin
+
 end;
 
 procedure TForm_PPI_Controller.WndProc(var Message: TMessage);
 begin
-  if Message.Msg = WM_APP then
+  if Message.Msg = WM_Reopen_Module then
     TDelphiFormFiles.ReopenModule(FModuleFileName)
-  else
+  else if Message.Msg = WM_Revert_PPI then begin
+    FForm.SetPropByName('PixelsPerInch', Message.WParam);
+  end else if Message.Msg = WM_Revert_Scaled then begin
+    FForm.SetPropByName('Scaled', Message.WParam);
+  end else
     Message.Result := DefWindowProc(FHandle, Message.Msg, Message.wParam, Message.lParam);
 end;
 
@@ -262,7 +306,8 @@ procedure TFixedFormScaled.AfterConstruction;
 begin
   inherited;
   FHandle := AllocateHWnd(WndProc);
-  Log(ClassName + ' installed');
+  FModuleNotifiers := TStringIntList.Create;
+  FViewAsTexts := TStringList.Create;
 end;
 
 procedure TFixedFormScaled.BeforeCompile(const Project: IOTAProject;
@@ -275,26 +320,29 @@ procedure TFixedFormScaled.BeforeDestruction;
 begin
   inherited;
   DeallocateHWnd(FHandle);
+  FModuleNotifiers.Free;
+  FViewAsTexts.Free;
 end;
 
 procedure TFixedFormScaled.FileNotification(NotifyCode: TOTAFileNotification; const
     FileName: string; var Cancel: Boolean);
-var Services: IOTAModuleServices;
-    M: IOTAModule;
+var M: IOTAModule;
     i: Integer;
     Editor: IOTAFormEditor;
     C: IOTAComponent;
     iScaled: Integer;
     iPPI, oPPI: Integer;
     F: TDelphiFormFiles;
+    o: IOTANotifier;
+    iNotifier: integer;
+    sPasFile: string;
 begin
   case NotifyCode of
     ofnFileOpened:
     begin
       if not FileExists(FileName){it is a new file}then Exit;
 
-      Services := BorlandIDEServices as IOTAModuleServices;
-      M := Services.FindModule(FileName);
+      M := GetModule(FileName);
 
       if Assigned(M) and (M.ModuleFileCount = 2){module has 2 editors} then begin
         for i := 0 to M.ModuleFileCount - 1 do begin
@@ -303,6 +351,7 @@ begin
             if C.IsTControl
                and C.GetPropValueByName('PixelsPerInch', iPPI)
                and C.GetPropValueByName('Scaled', iScaled)
+               and (FViewAsTexts.IndexOf(Editor.FileName) = -1)
             then begin
               if (iScaled = 1){Form.Scaled = True} then begin
                 F := TDelphiFormFiles.Create(Editor.FileName, FileName);
@@ -311,13 +360,22 @@ begin
                   Log('Re-scaled form detected: ' + ExtractFileName(Editor.FileName));
                   F.Unscaled;
                   TUnscaleFiles.Instance.Add(FileName, oPPI);
-                  PostMessage(FHandle, WM_APP, WParam(F), 0);
+                  PostMessage(FHandle, WM_Reopen_Module, WParam(F), 0);
                 end;
-              end else if (TUnscaleFiles.Instance.Exists(FileName)) {Add controller to re-scaled form editor} then begin
+              end else if TUnscaleFiles.Instance.Exists(FileName) {Add controller to re-scaled form editor} then begin
                 Log('Add controller to form: ' + ExtractFileName(Editor.FileName));
-                Editor.AddNotifier(TForm_PPI_Controller.Create(C, FileName));
+                o := TForm_PPI_Controller.Create(Editor, C, FileName);
+                FModuleNotifiers.Add(FileName, M.AddNotifier(o as IOTAModuleNotifier));
               end;
             end;
+          end;
+        end;
+      end else if SameText(ExtractFileExt(FileName), '.dfm'){Switch form to text} then begin
+        sPasFile := ChangeFileExt(FileName, '.pas');
+        if TUnscaleFiles.Instance.Exists(sPasFile) then begin
+          if TUnscaleFiles.Instance.GetInt(sPasFile, iPPI) and (iPPI <> Screen.PixelsPerInch) then begin
+            FViewAsTexts.Add(FileName);
+            ShowMessageFmt('PixelsPerInch in %s is %d.'#13'It will re-scale to %d when switch to form', [ExtractFileName(FileName), iPPI, Screen.PixelsPerInch]);
           end;
         end;
       end;
@@ -325,7 +383,32 @@ begin
 
     ofnFileClosing:
     begin
-      TUnscaleFiles.Instance.Delete(FileName);
+      if FViewAsTexts.Find(FileName, i) then
+        FViewAsTexts.Delete(i);
+      TUnscaleFiles.Instance.Delete(FileName, i);
+      M := GetModule(FileName);
+      if Assigned(M) then begin
+        for i := 0 to M.ModuleFileCount - 1 do begin
+          if FModuleNotifiers.Delete(FileName, iNotifier) then begin
+            M.RemoveNotifier(iNotifier);
+            Log('Remove controller from form: ' + ExtractFileName(FileName));
+          end;
+        end;
+      end;
+    end;
+  end;
+end;
+
+function TFixedFormScaled.GetModule(aFileName: string): IOTAModule;
+var i: integer;
+begin
+  Result := nil;
+  with (BorlandIDEServices as IOTAModuleServices) do begin
+    for i := ModuleCount - 1 downto 0 do begin
+     if SameText(Modules[i].FileName, aFileName) then begin
+        Result := Modules[i];
+        Break;
+      end;
     end;
   end;
 end;
@@ -333,7 +416,7 @@ end;
 procedure TFixedFormScaled.WndProc(var Message: TMessage);
 var F: TDelphiFormFiles;
 begin
-  if Message.Msg = WM_APP then begin
+  if Message.Msg = WM_Reopen_Module then begin
     F := TDelphiFormFiles(Message.WParam);
     try
       // Reopen module
@@ -346,6 +429,65 @@ begin
     end;
   end else
     Message.Result := DefWindowProc(FHandle, Message.Msg, Message.wParam, Message.lParam);
+end;
+
+procedure TStringIntList.Add(aStr: string; aInt: integer);
+begin
+  if FLocked then Exit;
+  FList.Values[aStr] := IntToStr(aInt);
+end;
+
+procedure TStringIntList.AfterConstruction;
+begin
+  inherited;
+  FList := TStringList.Create;
+end;
+
+procedure TStringIntList.BeforeDestruction;
+begin
+  inherited;
+  FList.Free;
+end;
+
+function TStringIntList.Delete(aStr: string; out aInt: Integer):
+    Boolean;
+var i: integer;
+begin
+  Result := False;
+  if FLocked then Exit;
+
+  i := FList.IndexOfName(aStr);
+  if i <> -1 then begin
+    Result := TryStrToInt(FList.Values[aStr], aInt);
+    if Result then FList.Delete(i);
+  end;
+end;
+
+function TStringIntList.Exists(aStr: string): boolean;
+begin
+  Result := FList.IndexOfName(aStr) <> -1;
+end;
+
+function TStringIntList.GetInt(aStr: string; out aInt: Integer): boolean;
+begin
+  Result := TryStrToInt(FList.Values[aStr], aInt);
+end;
+
+procedure TStringIntList.Lock;
+begin
+  FLocked := True;
+end;
+
+procedure TStringIntList.Unlock;
+begin
+  FLocked := False;
+end;
+
+class function TUnscaleFiles.Instance: TStringIntList;
+begin
+  if FInstance = nil then
+    FInstance := TStringIntList.Create;
+  Result := FInstance;
 end;
 
 end.
