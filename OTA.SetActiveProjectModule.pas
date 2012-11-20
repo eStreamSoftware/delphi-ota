@@ -117,22 +117,18 @@ begin
 end;
 
 function TSetActiveProjectModule.GetModuleName(const aFileName: string): string;
-var S: TStringList;
-    i: integer;
+var P: string;
 begin
-  Result := '';
-  S := TStringList.Create;
-  try
-    S.CaseSensitive := False;
-    S.Delimiter := '\';
-    S.StrictDelimiter := True;
-    S.DelimitedText := aFileName;
-    i := S.IndexOf('Project');
-    if (i <> -1) and (i < S.Count) then
-      Result := S[i + 2];
-  finally
-    S.Free;
+  P := ExtractFilePath(aFileName);
+  while not FileExists(IncludeTrailingPathDelimiter(P) + '.gitmodules') do begin
+    P := ExpandFileName(P + '\..');
+    if P = IncludeTrailingPathDelimiter(ExtractFileDrive(P)) then begin
+      // It is root drive
+      Result := '';
+      Exit;
+    end;
   end;
+  Result := ExtractFileName(P);
 end;
 
 procedure TSetActiveProjectModule.AfterCompile(Succeeded,
