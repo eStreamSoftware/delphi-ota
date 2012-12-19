@@ -76,15 +76,12 @@ type
   end;
 
   TFixedFormScaled = class(TNotifierObject, IOTANotifier, IOTAIDENotifier)
-  const
-    WM_Reopen_Module = WM_APP;
   private
-    FHandle: THandle;
     FIgnorePrompt: boolean;
     FModuleNotifiers: TStringIntList;
     FViewAsTexts: TStringList;
+    FFormFiles: TStringList;
     function GetModule(aFileName: string): IOTAModule;
-    procedure WndProc(var Message: TMessage);
   protected
     procedure FileNotification(NotifyCode: TOTAFileNotification; const FileName:
         string; var Cancel: Boolean);
@@ -306,10 +303,10 @@ end;
 procedure TFixedFormScaled.AfterConstruction;
 begin
   inherited;
-  FHandle := AllocateHWnd(WndProc);
   FIgnorePrompt := False;
   FModuleNotifiers := TStringIntList.Create;
   FViewAsTexts := TStringList.Create;
+  FFormFiles := TStringList.Create;
 end;
 
 procedure TFixedFormScaled.BeforeCompile(const Project: IOTAProject;
@@ -321,9 +318,9 @@ end;
 procedure TFixedFormScaled.BeforeDestruction;
 begin
   inherited;
-  DeallocateHWnd(FHandle);
   FModuleNotifiers.Free;
   FViewAsTexts.Free;
+  FFormFiles.Free;
 end;
 
 procedure TFixedFormScaled.FileNotification(NotifyCode: TOTAFileNotification; const
@@ -337,13 +334,48 @@ var M: IOTAModule;
     F: TDelphiFormFiles;
     o: IOTANotifier;
     iNotifier: integer;
-    sPasFile: string;
+    sPasFile, sDFMFile: string;
     sMsg: string;
     iMsg: TModalResult;
 begin
   case NotifyCode of
+    ofnProjectDesktopLoad: begin
+      //Log('ofnProjectDesktopLoad: ' + FileName);
+      while FFormFiles.Count > 0 do begin
+        sDFMFile := FFormFiles.Names[FFormFiles.Count - 1];
+        sPasFile := FFormFiles.ValueFromIndex[FFormFiles.Count - 1];
+        F := TDelphiFormFiles.Create(sDFMFile, sPasFile);
+        try
+          oPPI := F.GetPixelsPerInch(iPPI);
+          if (iPPI <> oPPI) {IDE has re-scaled form} then begin
+            Log('Re-scaled form detected: ' + ExtractFileName(sDFMFile));
+            sMsg := Format(
+                      'Form %s has been re-scale from PixelsPerInch (PPI) %d to %d.'#13'Do you want to keep original PPI (%d)?' +
+                      #13#13'Note: Press Ignore button will not prompt this dialog anymore and will always keep original PPI.',
+                      [ExtractFileName(sDFMFile), oPPI, iPPI, oPPI]
+                    );
+            iMsg := TModalResult(0);
+            if not FIgnorePrompt then begin
+              iMsg := MessageDlg(sMsg, mtConfirmation, [mbYes, mbNo, mbIgnore], 0);
+              FIgnorePrompt := iMsg = mrIgnore;
+            end;
+            if FIgnorePrompt or (iMsg = mrYes) then begin
+              F.Unscaled;
+              TUnscaleFiles.Instance.Add(sPasFile, oPPI);
+              F.ReopenModule(F.SourceFile);
+              F.ResetScaled;  // Reset form file scaled
+            end;
+          end;
+        finally
+          F.Free;
+        end;
+        FFormFiles.Delete(FFormFiles.Count - 1);
+      end;
+    end;
+
     ofnFileOpened:
     begin
+      Log('ofnFileOpened: ' + FileName);
       if not FileExists(FileName){it is a new file}then Exit;
 
       M := GetModule(FileName);
@@ -357,27 +389,9 @@ begin
                and C.GetPropValueByName('Scaled', iScaled)
                and (FViewAsTexts.IndexOf(Editor.FileName) = -1)
             then begin
-              if (iScaled = 1){Form.Scaled = True} then begin
-                F := TDelphiFormFiles.Create(Editor.FileName, FileName);
-                oPPI := F.GetPixelsPerInch(iPPI);
-                if (iPPI <> oPPI) {IDE has re-scaled form} then begin
-                  Log('Re-scaled form detected: ' + ExtractFileName(Editor.FileName));
-                  sMsg := Format(
-                            'Form %s has been re-scale from PixelsPerInch (PPI) %d to %d.'#13'Do you want to keep original PPI (%d)?' +
-                            #13#13'Note: Press Ignore button will not prompt this dialog anymore and will always keep original PPI.',
-                            [ExtractFileName(Editor.FileName), oPPI, iPPI, oPPI]
-                          );
-                  if not FIgnorePrompt then begin
-                    iMsg := MessageDlg(sMsg, mtConfirmation, [mbYes, mbNo, mbIgnore], 0);
-                    FIgnorePrompt := iMsg = mrIgnore;
-                  end;
-                  if FIgnorePrompt or (iMsg = mrYes) then begin
-                    F.Unscaled;
-                    TUnscaleFiles.Instance.Add(FileName, oPPI);
-                    PostMessage(FHandle, WM_Reopen_Module, WParam(F), 0);
-                  end;
-                end;
-              end else if TUnscaleFiles.Instance.Exists(FileName) {Add controller to re-scaled form editor} then begin
+              if (iScaled = 1){Form.Scaled = True} then
+                FFormFiles.Values[Editor.FileName] := FileName {Collect dfm and pas files pair}
+              else if TUnscaleFiles.Instance.Exists(FileName) {Add controller to re-scaled form editor} then begin
                 Log('Add controller to form: ' + ExtractFileName(Editor.FileName));
                 o := TForm_PPI_Controller.Create(Editor, C, FileName);
                 FModuleNotifiers.Add(FileName, M.AddNotifier(o as IOTAModuleNotifier));
@@ -426,24 +440,6 @@ begin
       end;
     end;
   end;
-end;
-
-procedure TFixedFormScaled.WndProc(var Message: TMessage);
-var F: TDelphiFormFiles;
-begin
-  if Message.Msg = WM_Reopen_Module then begin
-    F := TDelphiFormFiles(Message.WParam);
-    try
-      // Reopen module
-      F.ReopenModule(F.SourceFile);
-
-      // Reset form file scaled
-      F.ResetScaled;
-    finally
-      F.Free;
-    end;
-  end else
-    Message.Result := DefWindowProc(FHandle, Message.Msg, Message.wParam, Message.lParam);
 end;
 
 procedure TStringIntList.Add(aStr: string; aInt: integer);
