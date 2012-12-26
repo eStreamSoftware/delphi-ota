@@ -340,7 +340,6 @@ var M: IOTAModule;
 begin
   case NotifyCode of
     ofnProjectDesktopLoad: begin
-      //Log('ofnProjectDesktopLoad: ' + FileName);
       while FFormFiles.Count > 0 do begin
         sDFMFile := FFormFiles.Names[FFormFiles.Count - 1];
         sPasFile := FFormFiles.ValueFromIndex[FFormFiles.Count - 1];
@@ -375,7 +374,6 @@ begin
 
     ofnFileOpened:
     begin
-      Log('ofnFileOpened: ' + FileName);
       if not FileExists(FileName){it is a new file}then Exit;
 
       M := GetModule(FileName);
