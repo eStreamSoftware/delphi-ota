@@ -1,4 +1,5 @@
-unit OTA.CGRC;
+{$Message Fatal 'Deprecated.  No longer needed as all projects upgrded except comet'}
+unit OTA.CGRC deprecated;
 
 interface
 
