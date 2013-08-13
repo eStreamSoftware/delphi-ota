@@ -141,7 +141,7 @@ begin
                                  {$ifdef VER220}'project.d15'{$endif}
                                  {$ifdef VER230}'project.d16'{$endif}
                                  {$ifdef VER240}'project.d17'{$endif}
-                                 {$ifdef VER250}'project.d17'{$endif}
+                                 {$ifdef VER250}'project.d18'{$endif}
                  ]
                );
       if FileExists(sFile) then begin
