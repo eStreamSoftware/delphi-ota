@@ -48,10 +48,11 @@ procedure Register;
 
 implementation
 
-uses SysUtils, Registry;
+uses SysUtils, Registry, DesignIntf;
 
 procedure Register;
 begin
+  ForceDemandLoadState(dlDisable);
   TOTAFactory.SetupAll;
   SplashScreenServices.AddPluginBitmap('E Stream Software IDE Expert', 0);
 end;
