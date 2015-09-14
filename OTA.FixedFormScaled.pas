@@ -119,7 +119,7 @@ procedure ShowContent(S: IStream);
 var B: TBytes;
     T: tagSTATSTG;
     iRead: Integer;
-    iPos: Int64;
+    iPos: UInt64;
 begin
   if (S.Stat(T, STATFLAG_NONAME) = S_OK) then begin
     SetLength(B, T.cbSize);
