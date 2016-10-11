@@ -230,7 +230,7 @@ end;
 
 function TForm_PPI_Controller.CheckOverwrite: Boolean;
 begin
-
+  Result := True;
 end;
 
 procedure TForm_PPI_Controller.ComponentRenamed(ComponentHandle: TOTAHandle;
@@ -335,17 +335,14 @@ end;
 procedure TFixedFormScaled.FileNotification(NotifyCode: TOTAFileNotification; const
     FileName: string; var Cancel: Boolean);
 var M: IOTAModule;
-    i: Integer;
+    i, j: Integer;
     Editor: IOTAFormEditor;
     C: IOTAComponent;
     iScaled: Integer;
-    iPPI, oPPI: Integer;
-    F: TDelphiFormFiles;
+    iPPI: Integer;
     o: IOTANotifier;
     iNotifier: integer;
-    sPasFile, sDFMFile: string;
-    sMsg: string;
-    iMsg: TModalResult;
+    sPasFile: string;
 begin
   case NotifyCode of
     ofnProjectDesktopLoad: begin
@@ -403,6 +400,11 @@ begin
       M := GetModule(FileName);
       if Assigned(M) then begin
         for i := 0 to M.ModuleFileCount - 1 do begin
+          if Supports(M.ModuleFileEditors[i], IOTAFormEditor, Editor) then begin
+            j := FFormFiles.IndexOfName(Editor.FileName);
+            if j <> -1 then
+              FFormFiles.Delete(j);
+          end;
           if FModuleNotifiers.Delete(FileName, iNotifier) then begin
             M.RemoveNotifier(iNotifier);
             Log('Remove controller from form: ' + ExtractFileName(FileName));
@@ -439,9 +441,9 @@ var F: TDelphiFormFiles;
     C: IOTAComponent;
     bFree: boolean;
 begin
+  bFree := True;
   F := TDelphiFormFiles.Create(aDFMFile, aPasFile);
   try
-    bFree := True;
     iPPI := 0;
     M := GetModule(aPasFile);
     if Assigned(M) and (M.ModuleFileCount = 2){module has 2 editors} then begin
