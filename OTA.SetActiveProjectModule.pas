@@ -22,7 +22,7 @@ type
 
 implementation
 
-uses SysUtils, Classes, OTA.IDE;    
+uses System.SysUtils, System.Classes, OTA.IDE;
 
 resourcestring
   StrActiveProjectModule   = 'ActiveProjectModule';

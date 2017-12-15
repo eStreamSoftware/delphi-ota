@@ -6,7 +6,7 @@ procedure Register;
 
 implementation
 
-uses Classes, SysUtils, Windows, Forms, Dialogs, DesignEditors, DesignIntf,
+uses System.Classes, System.SysUtils, Winapi.Windows, Vcl.Forms, Vcl.Dialogs, DesignEditors, DesignIntf,
   ToolsApi;
 
 type

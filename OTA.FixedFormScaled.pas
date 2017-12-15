@@ -2,7 +2,7 @@ unit OTA.FixedFormScaled;
 
 interface
 
-uses Classes, Windows, Messages, ToolsAPI;
+uses System.Classes, Winapi.Windows, Winapi.Messages, ToolsAPI;
 
 type
   TStringIntList = class
@@ -100,7 +100,7 @@ type
 
 implementation
 
-uses SysUtils, ActiveX, Controls, Dialogs, Forms;
+uses System.SysUtils, Winapi.ActiveX, Vcl.Controls, Vcl.Dialogs, Vcl.Forms;
 
 {$if CompilerVersion = 18.5}
 procedure CheckOSError(LastError: Integer);

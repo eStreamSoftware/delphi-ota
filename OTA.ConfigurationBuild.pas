@@ -2,7 +2,7 @@ unit OTA.ConfigurationBuild;
 
 interface
 
-uses Windows, Classes, ToolsAPI;
+uses Winapi.Windows, System.Classes, ToolsAPI;
 
 type
   T_ProjectGroup_ConfigurationBuild = class(TNotifierObject, IOTAProjectMenuItemCreatorNotifier)
@@ -23,7 +23,7 @@ type
 
 implementation
 
-uses SysUtils, OTA.IDE140;
+uses System.SysUtils, OTA.IDE140;
 
 procedure T_ProjectGroup_ConfigurationBuild.AddMenu(const Project: IOTAProject; const
     IdentList: TStrings; const ProjectManagerMenuList: IInterfaceList;

@@ -3,7 +3,7 @@ unit OTA.DataSnap.ProxyClient;
 interface
 
 uses
-  SysUtils, Classes, ToolsAPI, Generics.Collections, uPSUtils;
+  System.SysUtils, System.Classes, ToolsAPI, System.Generics.Collections, uPSUtils;
 
 type
   TToken = record
@@ -55,7 +55,7 @@ type
 
 implementation
 
-uses IOUtils, OTA.IDE140;
+uses System.IOUtils, OTA.IDE140;
 
 class function TToken.Create(aToken: TPSPasToken; aTokenPos: integer; aOriginalToken:
     string): TToken;

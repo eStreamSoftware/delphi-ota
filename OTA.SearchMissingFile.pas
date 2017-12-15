@@ -3,7 +3,7 @@ unit OTA.SearchMissingFile;
 interface
 
 uses
-  ToolsAPI, Menus;
+  ToolsAPI, Vcl.Menus;
 
 type
   TSearchMissingFile = class(TNotifierObject, INTAProjectMenuCreatorNotifier)
@@ -19,7 +19,7 @@ type
 
 implementation
 
-uses SysUtils, Dialogs;
+uses System.SysUtils, Vcl.Dialogs;
 
 function TSearchMissingFile.AddMenu(const Ident: string): TMenuItem;
 begin

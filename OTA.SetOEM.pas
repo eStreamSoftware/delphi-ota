@@ -18,7 +18,7 @@ type
 
 implementation
 
-uses SysUtils, OTA.IDE;
+uses System.SysUtils, OTA.IDE;
 
 resourcestring
   StrOEM = 'OEM';

@@ -2,7 +2,7 @@ unit OTA.IDE;
 
 interface
 
-uses Windows, Classes, ToolsAPI;
+uses Winapi.Windows, System.Classes, ToolsAPI;
 
 type
   TNotifierOTA = class abstract
@@ -48,7 +48,7 @@ procedure Register;
 
 implementation
 
-uses SysUtils, Registry, DesignIntf;
+uses System.SysUtils, System.Win.Registry, DesignIntf;
 
 procedure Register;
 begin

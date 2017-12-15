@@ -2,7 +2,7 @@ unit OTA.RemoveDefaultResource experimental;
 
 interface
 
-uses Menus, ToolsAPI;
+uses Vcl.Menus, ToolsAPI;
 
 type
   TRemoveDefaultResource = class(TNotifierObject, INTAProjectMenuCreatorNotifier)
@@ -16,7 +16,7 @@ type
 
 implementation
 
-uses SysUtils, OTA.IDE;
+uses System.SysUtils, OTA.IDE;
 
 function TRemoveDefaultResource.AddMenu(const Ident: string): TMenuItem;
 begin

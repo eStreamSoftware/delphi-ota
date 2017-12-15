@@ -3,7 +3,7 @@ unit OTA.QC92507;
 interface
 
 uses
-  Classes, ToolsAPI;
+  System.Classes, ToolsAPI;
 
 type
   T_QC92507_BaseConfigurationContainer = class(TNotifierObject, IOTAProjectMenuItemCreatorNotifier)
@@ -20,7 +20,7 @@ type
 
 implementation
 
-uses SysUtils, OTA.IDE140;
+uses System.SysUtils, OTA.IDE140;
 
 procedure T_QC92507_BaseConfigurationContainer.AddMenu(const Project: IOTAProject;
   const IdentList: TStrings; const ProjectManagerMenuList: IInterfaceList;
