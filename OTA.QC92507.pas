@@ -1,3 +1,5 @@
+{$Message Fatal 'Deprecated'}
+
 unit OTA.QC92507;
 
 interface
