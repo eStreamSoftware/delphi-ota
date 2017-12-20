@@ -1,3 +1,5 @@
+{$Message Fatal 'Deprecated'}
+
 unit OTA.FixedFormScaled;
 
 interface

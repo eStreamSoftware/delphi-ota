@@ -20,12 +20,10 @@ implementation
 
 uses OTA.IDE
      , OTA.SetActiveProjectModule
-     , OTA.FixedFormScaled
      ;
 
 initialization
   TOTAFactory
     .Register(TNotifierOTA_Services.Create(TSetActiveProjectModule))
-    .Register(TNotifierOTA_Services.Create(TFixedFormScaled))
     ;
 end.
