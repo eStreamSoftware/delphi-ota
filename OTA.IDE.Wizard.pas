@@ -6,8 +6,9 @@ procedure Register;
 
 implementation
 
-uses System.Classes, System.SysUtils, Winapi.Windows, Vcl.Forms, Vcl.Dialogs, DesignEditors, DesignIntf,
-  ToolsApi;
+uses
+  Winapi.Windows, System.Classes, System.SysUtils, Vcl.Dialogs, Vcl.Forms,
+  DesignEditors, DesignIntf, ToolsApi;
 
 type
   TResourceDataModule = class(TDataModule);

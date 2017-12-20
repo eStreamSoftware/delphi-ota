@@ -3,7 +3,7 @@ unit OTA.SearchProject;
 interface
 
 uses
-  ToolsAPI, Vcl.Menus;
+  Vcl.Menus, ToolsAPI;
 
 type
   TSearchProject = class(TNotifierObject, INTAProjectMenuCreatorNotifier)
@@ -18,7 +18,8 @@ type
 
 implementation
 
-uses System.SysUtils, Vcl.Dialogs;
+uses
+  System.SysUtils, Vcl.Dialogs;
 
 function TSearchProject.AddMenu(const Ident: string): TMenuItem;
 begin

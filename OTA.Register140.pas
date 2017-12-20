@@ -4,7 +4,8 @@ interface
 
 implementation
 
-uses OTA.IDE, OTA.IDE140, OTA.DataSnap.ProxyClient, OTA.FormatUses;
+uses
+  OTA.DataSnap.ProxyClient, OTA.FormatUses, OTA.IDE, OTA.IDE140;
 
 initialization
   TOTAFactory

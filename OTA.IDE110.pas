@@ -2,7 +2,9 @@ unit OTA.IDE110;
 
 interface
 
-uses ToolsAPI, OTA.IDE;
+uses
+  ToolsAPI,
+  OTA.IDE;
 
 type
   TNotifierOTA_ProjectManager_110 = class(TNotifierOTA)

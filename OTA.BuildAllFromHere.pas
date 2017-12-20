@@ -3,7 +3,7 @@ unit OTA.BuildAllFromHere;
 interface
 
 uses
-  ToolsAPI, Vcl.Menus;
+  Vcl.Menus, ToolsAPI;
 
 type
   TBuildAllFromHere = class(TNotifierObject, INTAProjectMenuCreatorNotifier)
@@ -20,7 +20,8 @@ type
 
 implementation
 
-uses System.SysUtils;
+uses
+  System.SysUtils;
 
 function TBuildAllFromHere.AddMenu(const Ident: string): TMenuItem;
 begin

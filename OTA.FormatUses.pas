@@ -473,20 +473,24 @@ class procedure TEditor_FormatUses.FormatUses(E: IOTASourceEditor);
 const BufSize = 16 * 1024;
 var P: PAnsiChar;
     M: TStream;
-    i: Integer;
+    i, c: Integer;
     U: TPascalUnit;
     W: IOTAEditWriter;
     B: TBytes;
+    R: IOTAEditReader;
 begin
   M := TMemoryStream.Create;
   P := System.AnsiStrings.AnsiStrAlloc(BufSize);
   try
     i := 0;
+    R := E.CreateReader;
     repeat
-      i := E.CreateReader.GetText(i, P, BufSize);
-      if i > 0 then
-        M.Write(P[0], i);
-    until i < BufSize;
+      c := R.GetText(i, P, BufSize);
+      if c > 0 then begin
+        M.Write(P[0], c);
+        Inc(i, c);
+      end;
+    until c < BufSize;
     M.Position := 0;
     SetLength(B, M.Size);
     M.Read(B, MaxInt);

@@ -18,10 +18,8 @@ This is the list of IDE version numbers that are being used in various OTAPI int
 
 implementation
 
-uses OTA.IDE
-   , OTA.SetActiveProjectModule
-   , OTA.FormatUses
-   ;
+uses
+  OTA.FormatUses, OTA.IDE, OTA.SetActiveProjectModule;
 
 initialization
   TOTAFactory

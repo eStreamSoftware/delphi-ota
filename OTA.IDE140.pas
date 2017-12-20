@@ -2,7 +2,9 @@ unit OTA.IDE140;
 
 interface
 
-uses System.SysUtils, System.Classes, ToolsAPI, OTA.IDE;
+uses
+  System.Classes, System.SysUtils, ToolsAPI,
+  OTA.IDE;
 
 type
   TProjectMenuContextExecute = TProc<IOTAProjectMenuContext>;
