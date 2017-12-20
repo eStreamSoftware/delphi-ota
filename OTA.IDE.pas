@@ -21,6 +21,12 @@ type
     procedure BeforeDestruction; override;
   end;
 
+  TNotifierOTA_EditorServices = class(TNotifierOTA)
+  public
+    procedure Setup; override;
+    procedure BeforeDestruction; override;
+  end;
+
   TOTAFactoryClass = class of TOTAFactory;
 
   TOTAFactory = class abstract
@@ -118,6 +124,19 @@ begin
   inherited;
   if FNotifierIndex <> -1 then
     (BorlandIDEServices as IOTAServices).RemoveNotifier(FNotifierIndex);
+end;
+
+procedure TNotifierOTA_EditorServices.BeforeDestruction;
+begin
+  inherited;
+  if FNotifierIndex <> -1 then
+    (BorlandIDEServices as IOTAEditorServices).RemoveNotifier(FNotifierIndex);
+end;
+
+procedure TNotifierOTA_EditorServices.Setup;
+begin
+  FNotifier := FClass.Create;
+  FNotifierIndex := (BorlandIDEServices as IOTAEditorServices).AddNotifier(FNotifier as INTAEditServicesNotifier);
 end;
 
 class function TOTAUtil.GetSetupIni(const aProject: string; out aFile: string):

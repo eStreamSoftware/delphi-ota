@@ -19,11 +19,13 @@ This is the list of IDE version numbers that are being used in various OTAPI int
 implementation
 
 uses OTA.IDE
-     , OTA.SetActiveProjectModule
-     ;
+   , OTA.SetActiveProjectModule
+   , OTA.FormatUses
+   ;
 
 initialization
   TOTAFactory
     .Register(TNotifierOTA_Services.Create(TSetActiveProjectModule))
+    .Register(TNotifierOTA_EditorServices.Create(TEditor_FormatUses))
     ;
 end.
