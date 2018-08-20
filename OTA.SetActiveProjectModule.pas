@@ -17,7 +17,6 @@ type
     procedure AfterCompile(Succeeded: Boolean; IsCodeInsight: Boolean); overload;
   protected
     function GetModuleName(const aFileName: string): string;
-    function GetGitBranch(const aSrcDir: string): string;
   end;
 
 implementation
@@ -28,7 +27,6 @@ uses
 
 resourcestring
   StrActiveProjectModule   = 'ActiveProjectModule';
-  StrActiveProjectBranch   = 'ActiveProjectBranch';
   StrActiveHostApplication = 'ActiveHostApplication';
   StrSourceDir             = 'SourceDir';
 
@@ -84,38 +82,9 @@ begin
       sDir := '';
       if TOTAUtil.GetSourceDir(FileName, sDir) then
         TOTAUtil.SetVariable(StrSourceDir, sDir);
-
-      TOTAUtil.SetVariable(StrActiveProjectBranch, GetGitBranch(sDir));
     end;
   end;
   Cancel := False;
-end;
-
-function TSetActiveProjectModule.GetGitBranch(const aSrcDir: string): string;
-var S: TStringList;
-    sFile, sPrefix, sBranch: string;
-begin
-  Result := '';
-  sFile := aSrcDir + '\.git\HEAD';
-  if not FileExists(sFile) then Exit;
-
-  S := TStringList.Create;
-  try
-    S.LoadFromFile(sFile);
-    if S.Count = 0 then Exit;
-
-    sBranch := S[0];
-    sPrefix := 'ref: refs/heads/';
-    if Pos(sPrefix, sBranch) = 0 then Exit;
-    Delete(sBranch, 1, Length(sPrefix));
-
-    if SameText(sBranch, 'master') then Exit;
-    Result := sBranch;
-    if Result <> '' then
-      Result := '.' + Result;
-  finally
-    S.Free;
-  end;
 end;
 
 function TSetActiveProjectModule.GetModuleName(const aFileName: string): string;
