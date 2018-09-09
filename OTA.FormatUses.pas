@@ -3,7 +3,8 @@ unit OTA.FormatUses;
 interface
 
 uses
-  System.Classes, System.Generics.Defaults, Vcl.Menus, ToolsAPI,
+  System.Classes, System.Generics.Collections, System.Generics.Defaults,
+  Vcl.Menus, ToolsAPI,
   DockForm;
 
 type
@@ -22,8 +23,9 @@ type
     FEndPos: Integer;    // zero based
   private
     FClause: string;
-    class procedure InjectNewLine(var aUsesItems: TArray<string>; aLibraries:
-        TArray<TArray<string>>); static;
+    class procedure InjectNewLine(var aUsesItems: TArray<string>); static;
+    class function UnitsToDict(A: TArray<string>): TDictionary<string,string>;
+        static;
   public
     constructor Create(aStartPos, aEndPos: Integer; aClause: string);
     class operator Implicit(aClause: TUsesClause): string;
@@ -71,8 +73,8 @@ type
 implementation
 
 uses
-  Winapi.Windows, System.AnsiStrings, System.Generics.Collections, System.IOUtils,
-  System.RegularExpressions, System.SysUtils, System.Types, System.Win.Registry,
+  Winapi.Windows, System.AnsiStrings, System.IOUtils, System.RegularExpressions,
+  System.SysUtils, System.Types, System.Win.Registry,
   OTA.IDE140;
 
 type
@@ -149,42 +151,39 @@ begin
 end;
 
 class function TDelphiLibrary.GetBuiltInLibrary: TArray<string>;
+var s: string;
 begin
-  Result := GetFiles(
-              [(BorlandIDEServices as IOTAServices).GetRootDirectory + '\lib\win32\debug',
-               (BorlandIDEServices as IOTAServices).GetRootDirectory + '\source'],
-              TComparer_UnitScopeName.Create([
-                'Winapi', 'System', 'Data', 'Datasnap', 'EMS', 'FireDAC', 'IBX', 'REST', 'Soap', 'Xml',
-                'Web', 'DUnitX', 'FMX', 'Vcl', 'VclTee'
-              ]) as IComparer<string>
-            );
+  s := (BorlandIDEServices as IOTAServices).GetRootDirectory;
+  Result := GetFiles([s + '\lib', s + '\source'], nil);
 end;
 
 class function TDelphiLibrary.GetFiles(aPaths: TArray<string>; aComparer:
     IComparer<string>): TArray<string>;
-var i: Integer;
-    A: TStringDynArray;
-    s: string;
+var D: TDictionary<string,Integer>;
+    s, t, u, w: string;
 begin
-  // Enumerate all dcu files
-  A := [];
-  for s in aPaths do begin
-    A := A + TDirectory.GetFiles(s, '*.dcu', TSearchOption.soAllDirectories);
-    A := A + TDirectory.GetFiles(s, '*.pas', TSearchOption.soAllDirectories);
+  // Enumerate all dcu and pas files with distinct file name
+  D := TDictionary<string,Integer>.Create;
+  try
+    for s in aPaths do begin
+      for t in TArray<string>.Create('*.dcu', '*.pas') do begin
+        for u in TArray<string>(TDirectory.GetFiles(s, t, TSearchOption.soAllDirectories)) do begin
+          w := TPath.GetFileNameWithoutExtension(u);
+          if not D.ContainsKey(w) then
+            D.Add(w, 0);
+        end;
+      end;
+    end;
+    Result := D.Keys.ToArray;
+  finally
+    D.Free;
   end;
-  for i := Low(A) to High(A) do
-    A[i] := TPath.GetFileNameWithoutExtension(A[i]);
 
-  // Sort dcu file names by aComparer
+  // Sort file names by aComparer
   if aComparer = nil then
-    TArray.Sort<string>(A)
+    TArray.Sort<string>(Result)
   else
-    TArray.Sort<string>(A, aComparer);
-
-  // Return the dcu file name array
-  Result := [];
-  for s in A do
-    Result := Result + [s];
+    TArray.Sort<string>(Result, aComparer);
 end;
 
 constructor TUsesClause.Create(aStartPos, aEndPos: Integer; aClause:
@@ -195,72 +194,105 @@ begin
   FClause := aClause;
 end;
 
-class procedure TUsesClause.InjectNewLine(var aUsesItems: TArray<string>;
-    aLibraries: TArray<TArray<string>>);
-var s: string;
-    A: TArray<string>;
-    D: TDictionary<string,Integer>;
-    LastLibType, CurLibType: Integer;
-    i, iLen: Integer;
+class procedure TUsesClause.InjectNewLine(var aUsesItems: TArray<string>);
+var i, iLen: Integer;
 begin
-  // Traverse aUsesItems and inject Line Break indicator (#) to last item of built in or third party item
-  D := TDictionary<string,Integer>.Create;
-  try
-    i := 1;
-    for A in aLibraries do begin
-      for s in A do
-        D.AddOrSetValue(s.ToUpper, i);
-      Inc(i);
-    end;
-
-    LastLibType := -1;
-    for i := Low(aUsesItems) to High(aUsesItems) do begin
-      if not D.TryGetValue(aUsesItems[i].ToUpper, CurLibType) then CurLibType := -1;
-      if LastLibType <> CurLibType then begin
-        if i > Low(aUsesItems) then
-          aUsesItems[i-1] := aUsesItems[i-1] + '#';
-        LastLibType := CurLibType;
-      end;
-    end;
-  finally
-    D.Free;
-  end;
-
   iLen := 0;
   for i := Low(aUsesItems) to High(aUsesItems) do begin
-    if aUsesItems[i].EndsWith('#') then
-      iLen := 0
+    if aUsesItems[i].StartsWith(#13#10) then
+      iLen := aUsesItems[i].Length
     else if iLen + aUsesItems[i].Length < 80 then
       Inc(iLen, aUsesItems[i].Length + Length(', '))
     else begin
-      if i > Low(aUsesItems) then
-        aUsesItems[i - 1] := aUsesItems[i - 1] + '#';
+      aUsesItems[i] := #13#10 + aUsesItems[i];
       iLen := aUsesItems[i].Length;
     end;
   end;
 end;
 
-class operator TUsesClause.Implicit(aClause: TUsesClause): string;
+class function TUsesClause.UnitsToDict(A: TArray<string>):
+    TDictionary<string,string>;
 var s: string;
-    A: TArray<string>;
-    i: Integer;
 begin
-  s := aClause.FClause;
-  if not s.StartsWith('uses', True) then Exit(s);
-  if s.EndsWith(';') then
-    s := s.Remove(s.Length - 1);
+  Result := TDictionary<string,string>.Create;
+  for s in A do
+    if not Result.ContainsKey(s.ToUpper) then
+      Result.Add(s.ToUpper, s);
+end;
 
-  A := s.Remove(0, 4).Split([',']);
-  for i := Low(A) to High(A) do
-    A[i] := A[i].TrimLeft.TrimRight;
+class operator TUsesClause.Implicit(aClause: TUsesClause): string;
+var sUses, s: string;
+    A: TArray<string>;
+    t: string;
+    D1, D2: TDictionary<string,string>;
+    U1, U2, U3: TArray<string>;
+    bNewLine: Boolean;
+begin
+  // Extract units in uses clause
+  sUses := aClause.FClause;
+  if not sUses.StartsWith('uses', True) then Exit(sUses);
+  if sUses.EndsWith(';') then
+    sUses := sUses.Remove(sUses.Length - 1);
 
-  TArray.Sort<string>(A, TComparer_UnitName.Create(TDelphiLibrary.GetBuiltInLibrary + TDelphiLibrary.Get3rdPartyLibrary) as IComparer<string>);
+  A := sUses
+      .Remove(0, 4)
+      .Replace(#13#10, '', [rfReplaceAll])
+      .Replace(' ', '', [rfReplaceAll])
+      .Split([',']);
 
-  InjectNewLine(A, [TDelphiLibrary.GetBuiltInLibrary, TDelphiLibrary.Get3rdPartyLibrary]);
+  D1 := UnitsToDict(TDelphiLibrary.GetBuiltInLibrary);
+  D2 := UnitsToDict(TDelphiLibrary.Get3rdPartyLibrary);
+  try
+    // Prepare three unit arrays: build-in, 3rd party and custom
+    // rename unit name to actual file name
+    U1 := nil;
+    U2 := nil;
+    U3 := nil;
+    for s in A do begin
+      if D1.TryGetValue(s.ToUpper, t) then
+        U1 := U1 + [t]
+      else if D2.TryGetValue(s.ToUpper, t) then
+        U2 := U2 + [t]
+      else
+        U3 := U3 + [s];
+    end;
 
-  Result := s.Remove(4) + #13#10
-          + '  ' + string.Join(', ', A).Replace('#,', ','#13#10' ')
-          + ';';
+    // Sort unit arrays
+    TArray.Sort<string>(U1,
+      TComparer_UnitScopeName.Create([
+        'Winapi', 'System', 'Data', 'Datasnap', 'EMS', 'FireDAC', 'IBX',
+        'REST', 'Soap', 'Xml', 'Web', 'DUnitX', 'FMX', 'Vcl', 'VclTee'
+      ]) as IComparer<string>
+    );
+    TArray.Sort<string>(U2);
+    TArray.Sort<string>(U3);
+
+    // Inject new line to unit array
+    A := nil;
+    bNewLine := False;
+    if Length(U1) > 0 then begin
+      A := A + U1;
+      bNewLine := True;
+    end;
+    if Length(U2) > 0 then begin
+      if bNewLine then U2[0] := #13#10 + U2[0];
+      A := A + U2;
+      bNewLine := True;
+    end;
+    if Length(U3) > 0 then begin
+      if bNewLine then U3[0] := #13#10 + U3[0];
+      A := A + U3;
+    end;
+    InjectNewLine(A);
+
+    // Output new uses clause
+    Result := sUses.Remove(4) + #13#10
+            + '  ' + string.Join(', ', A).Replace(#13#10, #13#10'  ', [rfReplaceAll])
+            + ';';
+  finally
+    D1.Free;
+    D2.Free;
+  end;
 end;
 
 constructor TPascalUnit.Create(aSource: string);
@@ -370,11 +402,15 @@ end;
 
 constructor TComparer_UnitName.Create(aUnitNames: array of string);
 var i: Integer;
+    s: string;
 begin
   inherited Create;
   FUnitNames := TDictionary<string,Integer>.Create;
-  for i := Low(aUnitNames) to High(aUnitNames) do
-    FUnitNames.AddOrSetValue(aUnitNames[i].ToUpper, i);
+  for i := Low(aUnitNames) to High(aUnitNames) do begin
+    s := aUnitNames[i].ToUpper;
+    if not FUnitNames.ContainsKey(s) then
+      FUnitNames.AddOrSetValue(s, i);
+  end;
 end;
 
 procedure TProject_FormatUses.AddMenu(const Project: IOTAProject; const IdentList:
