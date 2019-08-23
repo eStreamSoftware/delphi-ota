@@ -54,7 +54,9 @@ type
   TEditor_FormatUses = class(TNotifierObject, IOTANotifier, INTAEditServicesNotifier)
   private
     FMenuItem: TMenuItem;
+    FPopupEvent: TNotifyEvent;
     procedure DoFormatUses(Sender: TObject);
+    procedure DoOnPopup(Sender: TObject);
   protected
     procedure WindowShow(const EditWindow: INTAEditWindow; Show, LoadedFromDesktop: Boolean);
     procedure WindowNotification(const EditWindow: INTAEditWindow; Operation: TOperation);
@@ -68,6 +70,7 @@ type
     class procedure FormatUses(E: IOTASourceEditor);
   public
     procedure AfterConstruction; override;
+    procedure BeforeDestruction; override;
   end;
 
 implementation
@@ -460,6 +463,17 @@ procedure TEditor_FormatUses.AfterConstruction;
 begin
   inherited;
   FMenuItem := nil;
+  FPopupEvent := nil;
+end;
+
+procedure TEditor_FormatUses.BeforeDestruction;
+begin
+  if Assigned(FMenuItem) and not (csDestroying in FMenuItem.ComponentState) then begin
+    if Assigned(FPopupEvent) and (FMenuItem.GetParentMenu is TPopupMenu) then
+      (FMenuItem.GetParentMenu as TPopupMenu).OnPopup := nil;
+    FreeAndNil(FMenuItem);
+  end;
+  inherited;
 end;
 
 procedure TEditor_FormatUses.DockFormRefresh(const EditWindow: INTAEditWindow;
@@ -485,17 +499,28 @@ begin
   FormatUses((BorlandIDEServices as IOTAEditorServices).GetTopBuffer);
 end;
 
+procedure TEditor_FormatUses.DoOnPopup(Sender: TObject);
+begin
+  if Sender is TPopupMenu then begin
+    var P := Sender as TPopupMenu;
+    if P.Items[0] <> FMenuItem then begin
+      FMenuItem := TMenuItem.Create(nil);
+      FMenuItem.Caption := 'Format Uses Clause';
+      FMenuItem.ShortCut := TextToShortCut('Ctrl+Alt+Shift+U');
+      FMenuItem.OnClick := DoFormatUses;
+      P.Items.Insert(0, FMenuItem);
+    end;
+  end;
+end;
+
 procedure TEditor_FormatUses.EditorViewActivated(const EditWindow: INTAEditWindow;
   const EditView: IOTAEditView);
 var P: TPopupMenu;
 begin
   if not Assigned(FMenuItem) then begin
-    P := EditView.GetEditWindow.Form.FindComponent('EditorLocalMenu') as TPopupMenu;
-    FMenuItem := TMenuItem.Create(nil);
-    FMenuItem.Caption := 'Format Uses Clause';
-    FMenuItem.ShortCut := TextToShortCut('Ctrl+Alt+Shift+U');
-    FMenuItem.OnClick := DoFormatUses;
-    P.Items.Add(FMenuItem);
+    P := (BorlandIDEServices as IOTAEditorServices).TopView.GetEditWindow.Form.FindComponent('EditorLocalMenu') as TPopupMenu;
+    FPopupEvent := P.OnPopup;
+    P.OnPopup := DoOnPopup;
   end;
 end;
 
