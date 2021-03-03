@@ -169,6 +169,7 @@ begin
   D := TDictionary<string,Integer>.Create;
   try
     for s in aPaths do begin
+      if not TDirectory.Exists(s) then Continue;
       for t in TArray<string>.Create('*.dcu', '*.pas') do begin
         for u in TArray<string>(TDirectory.GetFiles(s, t, TSearchOption.soAllDirectories)) do begin
           w := TPath.GetFileNameWithoutExtension(u);
