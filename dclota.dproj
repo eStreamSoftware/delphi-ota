@@ -209,7 +209,6 @@
         <DCCReference Include="OTA.SearchMissingFile.pas"/>
         <DCCReference Include="OTA.SearchProject.pas"/>
         <DCCReference Include="OTA.SetActiveProjectModule.pas"/>
-        <DCCReference Include="OTA.RemoveDefaultResource.pas"/>
         <DCCReference Include="OTA.Register.pas"/>
         <DCCReference Include="OTA.Register110.pas"/>
         <DCCReference Include="OTA.Register140.pas"/>

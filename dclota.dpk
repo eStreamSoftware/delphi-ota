@@ -42,7 +42,6 @@ contains
   OTA.SearchMissingFile in 'OTA.SearchMissingFile.pas',
   OTA.SearchProject in 'OTA.SearchProject.pas',
   OTA.SetActiveProjectModule in 'OTA.SetActiveProjectModule.pas',
-  OTA.RemoveDefaultResource in 'OTA.RemoveDefaultResource.pas',
   OTA.Register in 'OTA.Register.pas',
   OTA.Register110 in 'OTA.Register110.pas',
   OTA.Register140 in 'OTA.Register140.pas',

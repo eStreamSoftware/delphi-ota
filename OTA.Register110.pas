@@ -5,8 +5,7 @@ interface
 implementation
 
 uses OTA.IDE, OTA.IDE110,
-     OTA.BuildAllFromHere, OTA.SearchMissingFile, OTA.SearchProject,
-     OTA.RemoveDefaultResource
+     OTA.BuildAllFromHere, OTA.SearchMissingFile, OTA.SearchProject
      {$if CompilerVersion = 18.5}, OTA.SetOEMDir {$ifend}
      ;
 
@@ -15,7 +14,6 @@ initialization
     .Register(TNotifierOTA_ProjectManager_110.Create(TBuildAllFromHere))
     .Register(TNotifierOTA_ProjectManager_110.Create(TSearchMissingFile))
     .Register(TNotifierOTA_ProjectManager_110.Create(TSearchProject))
-    {$ifdef DEBUG}.Register(TNotifierOTA_ProjectManager_110.Create(TRemoveDefaultResource)){$endif}
     {$if CompilerVersion = 18.5}
       .Register(TNotifierOTA_Services.Create(TSetOEMDir))
     {$ifend}
