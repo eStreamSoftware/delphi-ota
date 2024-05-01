@@ -201,12 +201,10 @@
         </DelphiCompile>
         <DCCReference Include="designide.dcp"/>
         <DCCReference Include="vcldesigner.dcp"/>
-        <DCCReference Include="PascalScript_Core_D29.dcp"/>
         <DCCReference Include="OTA.IDE.pas"/>
         <DCCReference Include="OTA.IDE110.pas"/>
         <DCCReference Include="OTA.IDE140.pas"/>
         <DCCReference Include="OTA.IDE.Wizard.pas"/>
-        <DCCReference Include="OTA.DataSnap.ProxyClient.pas"/>
         <DCCReference Include="OTA.BuildAllFromHere.pas"/>
         <DCCReference Include="OTA.SearchMissingFile.pas"/>
         <DCCReference Include="OTA.SearchProject.pas"/>

@@ -31,15 +31,13 @@ package dclota;
 
 requires
   designide,
-  vcldesigner,
-  PascalScript_Core_D29;
+  vcldesigner;
 
 contains
   OTA.IDE in 'OTA.IDE.pas',
   OTA.IDE110 in 'OTA.IDE110.pas',
   OTA.IDE140 in 'OTA.IDE140.pas',
   OTA.IDE.Wizard in 'OTA.IDE.Wizard.pas',
-  OTA.DataSnap.ProxyClient in 'OTA.DataSnap.ProxyClient.pas',
   OTA.BuildAllFromHere in 'OTA.BuildAllFromHere.pas',
   OTA.SearchMissingFile in 'OTA.SearchMissingFile.pas',
   OTA.SearchProject in 'OTA.SearchProject.pas',
