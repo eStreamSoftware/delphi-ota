@@ -45,7 +45,6 @@ contains
   OTA.Register in 'OTA.Register.pas',
   OTA.Register110 in 'OTA.Register110.pas',
   OTA.Register140 in 'OTA.Register140.pas',
-  OTA.SetOEM in 'OTA.SetOEM.pas',
   OTA.FormatUses in 'OTA.FormatUses.pas';
 
 end.

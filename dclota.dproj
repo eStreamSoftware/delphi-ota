@@ -212,7 +212,6 @@
         <DCCReference Include="OTA.Register.pas"/>
         <DCCReference Include="OTA.Register110.pas"/>
         <DCCReference Include="OTA.Register140.pas"/>
-        <DCCReference Include="OTA.SetOEM.pas"/>
         <DCCReference Include="OTA.FormatUses.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
