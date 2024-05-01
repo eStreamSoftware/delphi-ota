@@ -1,0 +1,6 @@
+*.dsk
+*.dsv
+*.local
+*.res
+*.identcache
+Win32/
