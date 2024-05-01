@@ -1,0 +1,55 @@
+package dclota;
+
+{$R *.res}
+{$IFDEF IMPLICITBUILDING This IFDEF should not be used by users}
+{$ALIGN 8}
+{$ASSERTIONS ON}
+{$BOOLEVAL OFF}
+{$DEBUGINFO OFF}
+{$EXTENDEDSYNTAX ON}
+{$IMPORTEDDATA ON}
+{$IOCHECKS ON}
+{$LOCALSYMBOLS ON}
+{$LONGSTRINGS ON}
+{$OPENSTRINGS ON}
+{$OPTIMIZATION ON}
+{$OVERFLOWCHECKS OFF}
+{$RANGECHECKS OFF}
+{$REFERENCEINFO ON}
+{$SAFEDIVIDE OFF}
+{$STACKFRAMES OFF}
+{$TYPEDADDRESS OFF}
+{$VARSTRINGCHECKS ON}
+{$WRITEABLECONST OFF}
+{$MINENUMSIZE 1}
+{$IMAGEBASE $400000}
+{$ENDIF IMPLICITBUILDING}
+{$DESCRIPTION 'RAD Studio IDE OTA Extension'}
+{$LIBSUFFIX AUTO}
+{$DESIGNONLY}
+{$IMPLICITBUILD OFF}
+
+requires
+  designide,
+  vcldesigner,
+  PascalScript_Core_D29;
+
+contains
+  OTA.IDE in 'OTA.IDE.pas',
+  OTA.IDE110 in 'OTA.IDE110.pas',
+  OTA.IDE140 in 'OTA.IDE140.pas',
+  OTA.IDE.Wizard in 'OTA.IDE.Wizard.pas',
+  OTA.DataSnap.ProxyClient in 'OTA.DataSnap.ProxyClient.pas',
+  OTA.BuildAllFromHere in 'OTA.BuildAllFromHere.pas',
+  OTA.SearchMissingFile in 'OTA.SearchMissingFile.pas',
+  OTA.SearchProject in 'OTA.SearchProject.pas',
+  OTA.SetActiveProjectModule in 'OTA.SetActiveProjectModule.pas',
+  OTA.RemoveDefaultResource in 'OTA.RemoveDefaultResource.pas',
+  OTA.ConfigurationBuild in 'OTA.ConfigurationBuild.pas',
+  OTA.Register in 'OTA.Register.pas',
+  OTA.Register110 in 'OTA.Register110.pas',
+  OTA.Register140 in 'OTA.Register140.pas',
+  OTA.SetOEM in 'OTA.SetOEM.pas',
+  OTA.FormatUses in 'OTA.FormatUses.pas';
+
+end.
