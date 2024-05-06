@@ -202,14 +202,12 @@
         <DCCReference Include="designide.dcp"/>
         <DCCReference Include="vcldesigner.dcp"/>
         <DCCReference Include="OTA.IDE.pas"/>
-        <DCCReference Include="OTA.IDE110.pas"/>
         <DCCReference Include="OTA.IDE140.pas"/>
         <DCCReference Include="OTA.IDE.Wizard.pas"/>
         <DCCReference Include="OTA.BuildAllFromHere.pas"/>
         <DCCReference Include="OTA.SearchProject.pas"/>
         <DCCReference Include="OTA.SetActiveProjectModule.pas"/>
         <DCCReference Include="OTA.Register.pas"/>
-        <DCCReference Include="OTA.Register110.pas"/>
         <DCCReference Include="OTA.Register140.pas"/>
         <DCCReference Include="OTA.FormatUses.pas"/>
         <DCCReference Include="OTA.ProjectManagerMenu.pas"/>
