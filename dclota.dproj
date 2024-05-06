@@ -206,7 +206,6 @@
         <DCCReference Include="OTA.IDE140.pas"/>
         <DCCReference Include="OTA.IDE.Wizard.pas"/>
         <DCCReference Include="OTA.BuildAllFromHere.pas"/>
-        <DCCReference Include="OTA.SearchMissingFile.pas"/>
         <DCCReference Include="OTA.SearchProject.pas"/>
         <DCCReference Include="OTA.SetActiveProjectModule.pas"/>
         <DCCReference Include="OTA.Register.pas"/>
