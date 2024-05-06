@@ -3,10 +3,10 @@ unit OTA.SetActiveProjectModule;
 interface
 
 uses
-  ToolsAPI;
+  System.SysUtils, ToolsAPI;
 
 type
-  TSetActiveProjectModule = class(TNotifierObject, IOTAIDENotifier, IOTAIDENotifier50)
+  TSetActiveProjectModule = class(TNotifierObject, IOTAIDENotifier, IOTAIDENotifier50, TFunc<IOTAIDENotifier>)
   protected
     procedure FileNotification(NotifyCode: TOTAFileNotification;
       const FileName: string; var Cancel: Boolean);
@@ -15,6 +15,7 @@ type
     procedure BeforeCompile(const Project: IOTAProject; IsCodeInsight: Boolean;
       var Cancel: Boolean); overload;
     procedure AfterCompile(Succeeded: Boolean; IsCodeInsight: Boolean); overload;
+    function Invoke: IOTAIDENotifier;
   protected
     function GetModuleName(const aFileName: string): string;
   end;
@@ -22,7 +23,7 @@ type
 implementation
 
 uses
-  System.Classes, System.SysUtils,
+  System.Classes, System.IOUtils,
   OTA.IDE;
 
 resourcestring
@@ -48,7 +49,7 @@ var sHostApplication: string;
     S: TStringList;
 begin
   if IsCodeInsight then Exit;
-  
+
   sHostApplication := '';
 
   if TOTAUtil.GetSetupIni(Project.FileName, sFile) then begin
@@ -100,6 +101,11 @@ begin
     end;
   end;
   Result := ExtractFileName(P);
+end;
+
+function TSetActiveProjectModule.Invoke: IOTAIDENotifier;
+begin
+  Result := Self as IOTAIDENotifier;
 end;
 
 procedure TSetActiveProjectModule.AfterCompile(Succeeded,

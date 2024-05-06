@@ -24,9 +24,7 @@ uses
   OTA.SetActiveProjectModule;
 
 initialization
-  TOTAFactory
-    .Register(TNotifierOTA_Services.Create(TSetActiveProjectModule))
-    ;
+  TOTAFactory.RegisterProc(TNotifier_Services.Create(TSetActiveProjectModule.Create as TFunc<IOTAIDENotifier>));
 
   TOTAFactory.RegisterProc(TNotifier_ProjectManager.Create(TSearchProject.Create as TFunc<IOTAProjectMenuItemCreatorNotifier>));
   TOTAFactory.RegisterProc(TNotifier_KeyboardServices.Create(TSearchProject.Create as TFunc<IOTAKeyboardBinding>));

@@ -7,16 +7,6 @@ uses
   ToolsAPI;
 
 type
-  TNotifierOTA = class abstract
-  protected
-    FClass: TInterfacedClass;
-    FNotifier: IInterface;
-    FNotifierIndex: Integer;
-  public
-    constructor Create(const aClass: TInterfacedClass);
-    procedure Setup; virtual; abstract;
-  end;
-
   TNotifierOTA<T> = class(TInterfacedObject, TProc)
   type
     TFactory = TFunc<T>;
@@ -33,10 +23,10 @@ type
     procedure BeforeDestruction; override;
   end;
 
-  TNotifierOTA_Services = class(TNotifierOTA)
+  TNotifier_Services = class(
+      TNotifierOTA<IOTAIDENotifier>)
   public
-    procedure Setup; override;
-    procedure BeforeDestruction; override;
+    constructor Create(const aFactory: TFunc<IOTAIDENotifier>); reintroduce;
   end;
 
   TNotifier_ProjectManager = class(
@@ -50,24 +40,16 @@ type
     constructor Create(const aFactory: TFunc<IOTAKeyboardBinding>); reintroduce;
   end;
 
-  TOTAFactoryClass = class of TOTAFactory;
-
   TOTAFactory = class abstract
   private
-    FList: TList;
     FSetups: TArray<TProc>;
     class var FInstance: TOTAFactory;
   public
     class constructor Create;
     class destructor Destroy;
-    procedure AfterConstruction; override;
     procedure BeforeDestruction; override;
-    function GetList: TList;
-    class function Register(const aNotifier: TNotifierOTA): TOTAFactoryClass;
     class procedure RegisterProc(const aSetup: TProc);
-    class procedure Setup;
     class procedure SetupAll;
-    class procedure TearDown;
   end;
 
   TOTAUtil = class abstract
@@ -101,26 +83,10 @@ begin
   FreeAndNil(FInstance);
 end;
 
-procedure TOTAFactory.AfterConstruction;
-begin
-  inherited;
-  FList := TList.Create;
-end;
-
 procedure TOTAFactory.BeforeDestruction;
-var i: integer;
 begin
-  inherited;
-  for i := FList.Count - 1 downto 0 do
-    TObject(FList[i]).Free;
-  FList.Free;
-
   FSetups := [];
-end;
-
-function TOTAFactory.GetList: TList;
-begin
-  Result := FList;
+  inherited;
 end;
 
 class procedure TOTAFactory.RegisterProc(const aSetup: TProc);
@@ -128,36 +94,9 @@ begin
   FInstance.FSetups := FInstance.FSetups + [aSetup];
 end;
 
-class function TOTAFactory.Register(const aNotifier: TNotifierOTA): TOTAFactoryClass;
-begin
-  FInstance.GetList.Add(aNotifier);
-  Result := Self;
-end;
-
-class procedure TOTAFactory.Setup;
-begin
-  FInstance := TOTAFactory.Create;
-end;
-
 class procedure TOTAFactory.SetupAll;
-var i: integer;
 begin
-  for i := 0 to FInstance.GetList.Count - 1 do
-    TNotifierOTA(FInstance.GetList[i]).Setup;
-
   for var o in FInstance.FSetups do o();
-end;
-
-class procedure TOTAFactory.TearDown;
-begin
-  FreeAndNil(FInstance);
-end;
-
-constructor TNotifierOTA.Create(const aClass: TInterfacedClass);
-begin
-  inherited Create;
-  FClass := aClass;
-  FNotifierIndex := -1;
 end;
 
 procedure TNotifierOTA<T>.BeforeDestruction;
@@ -183,17 +122,18 @@ begin
   FNotifierIndex := FAdd(FFactory());
 end;
 
-procedure TNotifierOTA_Services.Setup;
+constructor TNotifier_Services.Create(
+  const aFactory: TFunc<IOTAIDENotifier>);
 begin
-  FNotifier := FClass.Create;
-  FNotifierIndex := (BorlandIDEServices as IOTAServices).AddNotifier(FNotifier as IOTAIDENotifier);
-end;
-
-procedure TNotifierOTA_Services.BeforeDestruction;
-begin
-  if FNotifierIndex <> -1 then
-    (BorlandIDEServices as IOTAServices).RemoveNotifier(FNotifierIndex);
-  inherited;
+  inherited Create(
+    function(const aNotifier: IOTAIDENotifier): Integer begin
+      Result := (BorlandIDEServices as IOTAServices).AddNotifier(aNotifier);
+    end
+  , procedure(aIndex: Integer) begin
+      (BorlandIDEServices as IOTAServices).RemoveNotifier(aIndex);;
+    end
+  , aFactory
+  );
 end;
 
 constructor TNotifier_ProjectManager.Create(const aFactory: TFunc<IOTAProjectMenuItemCreatorNotifier>);
@@ -295,8 +235,4 @@ begin
   end;
 end;
 
-initialization
-  TOTAFactory.Setup;
-finalization
-  TOTAFactory.TearDown;
 end.
