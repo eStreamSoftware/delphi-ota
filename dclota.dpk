@@ -44,6 +44,8 @@ contains
   OTA.Register in 'OTA.Register.pas',
   OTA.Register110 in 'OTA.Register110.pas',
   OTA.Register140 in 'OTA.Register140.pas',
-  OTA.FormatUses in 'OTA.FormatUses.pas';
+  OTA.FormatUses in 'OTA.FormatUses.pas',
+  OTA.ProjectManagerMenu in 'OTA.ProjectManagerMenu.pas',
+  OTA.KeyboardBinding in 'OTA.KeyboardBinding.pas';
 
 end.

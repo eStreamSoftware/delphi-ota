@@ -19,11 +19,15 @@ This is the list of IDE version numbers that are being used in various OTAPI int
 implementation
 
 uses
-  OTA.FormatUses, OTA.IDE, OTA.SetActiveProjectModule;
+  System.SysUtils, ToolsAPI,
+  OTA.FormatUses, OTA.IDE, OTA.SearchProject, OTA.SetActiveProjectModule;
 
 initialization
   TOTAFactory
     .Register(TNotifierOTA_Services.Create(TSetActiveProjectModule))
     .Register(TNotifierOTA_EditorServices.Create(TEditor_FormatUses))
     ;
+
+  TOTAFactory.RegisterProc(TNotifier_ProjectManager.Create(TSearchProject.Create as TFunc<IOTAProjectMenuItemCreatorNotifier>));
+  TOTAFactory.RegisterProc(TNotifier_KeyboardServices.Create(TSearchProject.Create as TFunc<IOTAKeyboardBinding>));
 end.

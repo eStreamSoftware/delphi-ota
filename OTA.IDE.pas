@@ -3,7 +3,8 @@ unit OTA.IDE;
 interface
 
 uses
-  Winapi.Windows, System.Classes, ToolsAPI;
+  Winapi.Windows, System.Classes, System.Generics.Collections, System.SysUtils,
+  ToolsAPI;
 
 type
   TNotifierOTA = class abstract
@@ -14,6 +15,22 @@ type
   public
     constructor Create(const aClass: TInterfacedClass);
     procedure Setup; virtual; abstract;
+  end;
+
+  TNotifierOTA<T> = class(TInterfacedObject, TProc)
+  type
+    TFactory = TFunc<T>;
+    TAdd = reference to function(const aNotifier: T): Integer;
+    TRemove = reference to procedure(aIndex: Integer);
+  protected
+    FNotifierIndex: Integer;
+    FFactory: TFactory;
+    FAdd: TAdd;
+    FRemove: TRemove;
+    procedure Invoke;
+  public
+    constructor Create(aAdd: TAdd; aRemove: TRemove; const aFactory: TFactory);
+    procedure BeforeDestruction; override;
   end;
 
   TNotifierOTA_Services = class(TNotifierOTA)
@@ -28,17 +45,38 @@ type
     procedure BeforeDestruction; override;
   end;
 
+  TNotifierOTA_ProjectManager = class(TNotifierOTA)
+  public
+    procedure Setup; override;
+    procedure BeforeDestruction; override;
+  end;
+
+  TNotifier_ProjectManager = class(
+      TNotifierOTA<IOTAProjectMenuItemCreatorNotifier>)
+  public
+    constructor Create(const aFactory: TFunc<IOTAProjectMenuItemCreatorNotifier>); reintroduce;
+  end;
+
+  TNotifier_KeyboardServices = class(TNotifierOTA<IOTAKeyboardBinding>)
+  public
+    constructor Create(const aFactory: TFunc<IOTAKeyboardBinding>); reintroduce;
+  end;
+
   TOTAFactoryClass = class of TOTAFactory;
 
   TOTAFactory = class abstract
   private
     FList: TList;
+    FSetups: TArray<TProc>;
     class var FInstance: TOTAFactory;
   public
+    class constructor Create;
+    class destructor Destroy;
     procedure AfterConstruction; override;
     procedure BeforeDestruction; override;
     function GetList: TList;
     class function Register(const aNotifier: TNotifierOTA): TOTAFactoryClass;
+    class procedure RegisterProc(const aSetup: TProc);
     class procedure Setup;
     class procedure SetupAll;
     class procedure TearDown;
@@ -56,13 +94,23 @@ procedure Register;
 implementation
 
 uses
-  System.SysUtils, System.Win.Registry, DesignIntf;
+  System.Win.Registry, DesignIntf;
 
 procedure Register;
 begin
   ForceDemandLoadState(dlDisable);
   TOTAFactory.SetupAll;
   SplashScreenServices.AddPluginBitmap('E Stream Software IDE Expert', 0);
+end;
+
+class constructor TOTAFactory.Create;
+begin
+  FInstance := TOTAFactory.Create;
+end;
+
+class destructor TOTAFactory.Destroy;
+begin
+  FreeAndNil(FInstance);
 end;
 
 procedure TOTAFactory.AfterConstruction;
@@ -78,11 +126,18 @@ begin
   for i := FList.Count - 1 downto 0 do
     TObject(FList[i]).Free;
   FList.Free;
+
+  FSetups := [];
 end;
 
 function TOTAFactory.GetList: TList;
 begin
   Result := FList;
+end;
+
+class procedure TOTAFactory.RegisterProc(const aSetup: TProc);
+begin
+  FInstance.FSetups := FInstance.FSetups + [aSetup];
 end;
 
 class function TOTAFactory.Register(const aNotifier: TNotifierOTA): TOTAFactoryClass;
@@ -101,6 +156,8 @@ var i: integer;
 begin
   for i := 0 to FInstance.GetList.Count - 1 do
     TNotifierOTA(FInstance.GetList[i]).Setup;
+
+  for var o in FInstance.FSetups do o();
 end;
 
 class procedure TOTAFactory.TearDown;
@@ -115,6 +172,29 @@ begin
   FNotifierIndex := -1;
 end;
 
+procedure TNotifierOTA<T>.BeforeDestruction;
+begin
+  if FNotifierIndex <> -1 then
+    FRemove(FNotifierIndex);
+  inherited;
+end;
+
+constructor TNotifierOTA<T>.Create(aAdd: TAdd; aRemove: TRemove; const
+    aFactory: TFactory);
+begin
+  inherited Create;
+  FAdd := aAdd;
+  FRemove := aRemove;
+  FFactory := aFactory;
+
+  FNotifierIndex := -1;
+end;
+
+procedure TNotifierOTA<T>.Invoke;
+begin
+  FNotifierIndex := FAdd(FFactory());
+end;
+
 procedure TNotifierOTA_Services.Setup;
 begin
   FNotifier := FClass.Create;
@@ -123,22 +203,62 @@ end;
 
 procedure TNotifierOTA_Services.BeforeDestruction;
 begin
-  inherited;
   if FNotifierIndex <> -1 then
     (BorlandIDEServices as IOTAServices).RemoveNotifier(FNotifierIndex);
+  inherited;
 end;
 
 procedure TNotifierOTA_EditorServices.BeforeDestruction;
 begin
-  inherited;
   if FNotifierIndex <> -1 then
     (BorlandIDEServices as IOTAEditorServices).RemoveNotifier(FNotifierIndex);
+  inherited;
 end;
 
 procedure TNotifierOTA_EditorServices.Setup;
 begin
   FNotifier := FClass.Create;
   FNotifierIndex := (BorlandIDEServices as IOTAEditorServices).AddNotifier(FNotifier as INTAEditServicesNotifier);
+end;
+
+procedure TNotifierOTA_ProjectManager.Setup;
+begin
+  FNotifier := FClass.Create;
+  FNotifierIndex := (BorlandIDEServices as IOTAProjectManager).AddMenuItemCreatorNotifier(FNotifier as IOTAProjectMenuItemCreatorNotifier);
+end;
+
+procedure TNotifierOTA_ProjectManager.BeforeDestruction;
+begin
+  if FNotifierIndex <> -1 then
+    (BorlandIDEServices as IOTAProjectManager).RemoveMenuItemCreatorNotifier(FNotifierIndex);
+  inherited;
+end;
+
+constructor TNotifier_ProjectManager.Create(const aFactory: TFunc<IOTAProjectMenuItemCreatorNotifier>);
+begin
+  inherited Create(
+    function(const aNotifier: IOTAProjectMenuItemCreatorNotifier): Integer begin
+      Result := (BorlandIDEServices as IOTAProjectManager).AddMenuItemCreatorNotifier(aNotifier);
+    end
+  , procedure(aIndex: Integer) begin
+      (BorlandIDEServices as IOTAProjectManager).RemoveMenuItemCreatorNotifier(aIndex);;
+    end
+  , aFactory
+  );
+end;
+
+constructor TNotifier_KeyboardServices.Create(
+  const aFactory: TFunc<IOTAKeyboardBinding>);
+begin
+  inherited Create(
+    function(const aNotifier: IOTAKeyboardBinding): Integer begin
+      Result := (BorlandIDEServices as IOTAKeyboardServices).AddKeyboardBinding(aNotifier);
+    end
+  , procedure(aIndex: Integer) begin
+      (BorlandIDEServices as IOTAKeyboardServices).RemoveKeyboardBinding(aIndex);;
+    end
+  , aFactory
+  );
 end;
 
 class function TOTAUtil.GetSetupIni(const aProject: string; out aFile: string):

@@ -212,6 +212,8 @@
         <DCCReference Include="OTA.Register110.pas"/>
         <DCCReference Include="OTA.Register140.pas"/>
         <DCCReference Include="OTA.FormatUses.pas"/>
+        <DCCReference Include="OTA.ProjectManagerMenu.pas"/>
+        <DCCReference Include="OTA.KeyboardBinding.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>
