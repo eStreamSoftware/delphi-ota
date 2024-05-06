@@ -20,16 +20,21 @@ implementation
 
 uses
   System.SysUtils, ToolsAPI,
-  OTA.FormatUses, OTA.IDE, OTA.SearchProject, OTA.SetActiveProjectModule,
-  OTA.BuildAllFromHere;
+  OTA.BuildAllFromHere, OTA.FormatUses, OTA.IDE, OTA.SearchProject,
+  OTA.SetActiveProjectModule;
 
 initialization
   TOTAFactory
     .Register(TNotifierOTA_Services.Create(TSetActiveProjectModule))
-    .Register(TNotifierOTA_EditorServices.Create(TEditor_FormatUses))
     ;
 
   TOTAFactory.RegisterProc(TNotifier_ProjectManager.Create(TSearchProject.Create as TFunc<IOTAProjectMenuItemCreatorNotifier>));
   TOTAFactory.RegisterProc(TNotifier_KeyboardServices.Create(TSearchProject.Create as TFunc<IOTAKeyboardBinding>));
+
   TOTAFactory.RegisterProc(TNotifier_KeyboardServices.Create(TBuildAllFromHere.Create as TFunc<IOTAKeyboardBinding>));
+
+  TOTAFactory.RegisterProc(TNotifier_ProjectManager.Create(TFormatUses.Create as TFunc<IOTAProjectMenuItemCreatorNotifier>));
+  TOTAFactory.RegisterProc(TNotifier_KeyboardServices.Create(TFormatUses.Create as TFunc<IOTAKeyboardBinding>));
+
+  TOTAFactory.RegisterProc(TFormatUses.Create as TProc);
 end.

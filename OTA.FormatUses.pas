@@ -4,7 +4,7 @@ interface
 
 uses
   System.Classes, System.Generics.Collections, System.Generics.Defaults,
-  Vcl.Menus, ToolsAPI,
+  System.SysUtils, Vcl.ActnList, Vcl.Menus, ToolsAPI,
   DockForm;
 
 type
@@ -45,31 +45,28 @@ type
     property Useses: TArray<TUsesClause> read FUseses;
   end;
 
-  TProject_FormatUses = class(TNotifierObject, IOTAProjectMenuItemCreatorNotifier)
+  TFormatUses = class(TNotifierObject, IOTAProjectMenuItemCreatorNotifier,
+      TProc,
+      TFunc<IOTAProjectMenuItemCreatorNotifier>, TFunc<IOTAKeyboardBinding>)
+  const
+    ActionCaption = 'Format uses clause';
+  private
+    FActionList: TActionList;
+    FAction: TAction;
+    procedure ActionExecute(Sender: TObject);
+    procedure DoExecute(const aMenuContextList: IInterfaceList);
+    procedure FormatUses(E: IOTASourceEditor);
+    function ActionShortCut: TShortCut;
   protected
     procedure AddMenu(const Project: IOTAProject; const IdentList: TStrings; const
         ProjectManagerMenuList: IInterfaceList; IsMultiSelect: Boolean);
-  end;
-
-  TEditor_FormatUses = class(TNotifierObject, IOTANotifier, INTAEditServicesNotifier)
-  private
-    FMenuItem: TMenuItem;
-    FPopupEvent: TNotifyEvent;
-    procedure DoFormatUses(Sender: TObject);
-    procedure DoOnPopup(Sender: TObject);
-  protected
-    procedure WindowShow(const EditWindow: INTAEditWindow; Show, LoadedFromDesktop: Boolean);
-    procedure WindowNotification(const EditWindow: INTAEditWindow; Operation: TOperation);
-    procedure WindowActivated(const EditWindow: INTAEditWindow);
-    procedure WindowCommand(const EditWindow: INTAEditWindow; Command, Param: Integer; var Handled: Boolean);
-    procedure EditorViewActivated(const EditWindow: INTAEditWindow; const EditView: IOTAEditView);
-    procedure EditorViewModified(const EditWindow: INTAEditWindow; const EditView: IOTAEditView);
-    procedure DockFormVisibleChanged(const EditWindow: INTAEditWindow; DockForm: TDockableForm);
-    procedure DockFormUpdated(const EditWindow: INTAEditWindow; DockForm: TDockableForm);
-    procedure DockFormRefresh(const EditWindow: INTAEditWindow; DockForm: TDockableForm);
-    class procedure FormatUses(E: IOTASourceEditor);
+    procedure TProc.Invoke = Invoke;
+    function TFunc<IOTAKeyboardBinding>.Invoke = Invoke_IOTAKeyboardBinding;
+    function TFunc<IOTAProjectMenuItemCreatorNotifier>.Invoke = Invoke_IOTAProjectMenuItemCreatorNotifier;
+    procedure Invoke;
+    function Invoke_IOTAKeyboardBinding: IOTAKeyboardBinding;
+    function Invoke_IOTAProjectMenuItemCreatorNotifier: IOTAProjectMenuItemCreatorNotifier;
   public
-    procedure AfterConstruction; override;
     procedure BeforeDestruction; override;
   end;
 
@@ -77,8 +74,8 @@ implementation
 
 uses
   Winapi.Windows, System.AnsiStrings, System.IOUtils, System.RegularExpressions,
-  System.SysUtils, System.Types, System.Win.Registry,
-  OTA.IDE140;
+  System.Types, System.Win.Registry,
+  OTA.KeyboardBinding, OTA.ProjectManagerMenu;
 
 type
   TComparer_UnitScopeName = class(TInterfacedObject, IComparer<string>)
@@ -417,19 +414,21 @@ begin
   end;
 end;
 
-procedure TProject_FormatUses.AddMenu(const Project: IOTAProject; const IdentList:
-    TStrings; const ProjectManagerMenuList: IInterfaceList; IsMultiSelect:
-    Boolean);
-var S: string;
-    bIsPasFile: boolean;
-    m: IOTAProjectManagerMenu;
+procedure TFormatUses.ActionExecute(Sender: TObject);
+begin
+  FormatUses((BorlandIDEServices as IOTAEditorServices).GetTopBuffer);
+end;
+
+procedure TFormatUses.AddMenu(const Project: IOTAProject;
+  const IdentList: TStrings; const ProjectManagerMenuList: IInterfaceList;
+  IsMultiSelect: Boolean);
 begin
   if IdentList.IndexOf(sFileContainer) = -1 then Exit;
   if IdentList.IndexOf(sOptionSet) <> -1 then Exit;
   if IdentList.IndexOf(sDirectoryContainer) <> -1 then Exit;
 
-  bIsPasFile := False;
-  for S in IdentList do begin
+  var bIsPasFile := False;
+  for var S in IdentList do begin
     if not FileExists(S) then Continue;
     if SameText(ExtractFileExt(S), '.pas') then begin
       bIsPasFile := True;
@@ -439,99 +438,33 @@ begin
 
   if not bIsPasFile then Exit;
 
-  m := TNotifierOTA_ProjectManagerMenu.Create;
-  m.IsMultiSelectable := True;
-  m.Caption := 'Format uses clause';
-
-  (m as IOTAProjectManagerMenuExecute).Execute :=
-    procedure (aContext: IOTAProjectMenuContext)
-    var M: IOTAModule;
-        U: TPascalUnit;
-    begin
-      M := (BorlandIDEServices as IOTAModuleServices).FindModule(aContext.Ident);
-      if Assigned(M) then
-        TEditor_FormatUses.FormatUses(M.CurrentEditor as IOTASourceEditor)
-      else begin
-        U := TFile.ReadAllText(aContext.Ident);
-        TFile.WriteAllText(aContext.Ident, U);
-      end;
-    end;
-
-  ProjectManagerMenuList.Add(m);
+  ProjectManagerMenuList.Add(TNotifierObject_ProjectManagerMenu.Create(ActionCaption, '', pmmpUserOptions, DoExecute, ClassName) as IOTAProjectManagerMenu);
 end;
 
-procedure TEditor_FormatUses.AfterConstruction;
+procedure TFormatUses.BeforeDestruction;
 begin
-  inherited;
-  FMenuItem := nil;
-  FPopupEvent := nil;
-end;
+  FAction.Free;
+  FActionList.Free;
 
-procedure TEditor_FormatUses.BeforeDestruction;
-begin
-  if Assigned(FMenuItem) and not (csDestroying in FMenuItem.ComponentState) then begin
-    if Assigned(FPopupEvent) and (FMenuItem.GetParentMenu is TPopupMenu) then
-      (FMenuItem.GetParentMenu as TPopupMenu).OnPopup := nil;
-    FreeAndNil(FMenuItem);
-  end;
+  (BorlandIDEServices as IOTAEditorServices).GetEditorLocalMenu.UnregisterActionList(ClassName);
   inherited;
 end;
 
-procedure TEditor_FormatUses.DockFormRefresh(const EditWindow: INTAEditWindow;
-  DockForm: TDockableForm);
+procedure TFormatUses.DoExecute(const aMenuContextList: IInterfaceList);
 begin
-
-end;
-
-procedure TEditor_FormatUses.DockFormUpdated(const EditWindow: INTAEditWindow;
-  DockForm: TDockableForm);
-begin
-
-end;
-
-procedure TEditor_FormatUses.DockFormVisibleChanged(const EditWindow: INTAEditWindow;
-  DockForm: TDockableForm);
-begin
-
-end;
-
-procedure TEditor_FormatUses.DoFormatUses(Sender: TObject);
-begin
-  FormatUses((BorlandIDEServices as IOTAEditorServices).GetTopBuffer);
-end;
-
-procedure TEditor_FormatUses.DoOnPopup(Sender: TObject);
-begin
-  if Sender is TPopupMenu then begin
-    var P := Sender as TPopupMenu;
-    if P.Items[0] <> FMenuItem then begin
-      FMenuItem := TMenuItem.Create(nil);
-      FMenuItem.Caption := 'Format Uses Clause';
-      FMenuItem.ShortCut := TextToShortCut('Ctrl+Alt+Shift+U');
-      FMenuItem.OnClick := DoFormatUses;
-      P.Items.Insert(0, FMenuItem);
+  for var i := 0 to aMenuContextList.Count - 1 do begin
+    var c := aMenuContextList[i] as IOTAProjectMenuContext;
+    var M := (BorlandIDEServices as IOTAModuleServices).FindModule(c.Ident);
+    if Assigned(M) then
+      FormatUses(M.CurrentEditor as IOTASourceEditor)
+    else begin
+      var U := TFile.ReadAllText(c.Ident);
+      TFile.WriteAllText(c.Ident, U);
     end;
   end;
 end;
 
-procedure TEditor_FormatUses.EditorViewActivated(const EditWindow: INTAEditWindow;
-  const EditView: IOTAEditView);
-var P: TPopupMenu;
-begin
-  if not Assigned(FMenuItem) then begin
-    P := (BorlandIDEServices as IOTAEditorServices).TopView.GetEditWindow.Form.FindComponent('EditorLocalMenu') as TPopupMenu;
-    FPopupEvent := P.OnPopup;
-    P.OnPopup := DoOnPopup;
-  end;
-end;
-
-procedure TEditor_FormatUses.EditorViewModified(const EditWindow: INTAEditWindow;
-  const EditView: IOTAEditView);
-begin
-
-end;
-
-class procedure TEditor_FormatUses.FormatUses(E: IOTASourceEditor);
+procedure TFormatUses.FormatUses(E: IOTASourceEditor);
 const BufSize = 16 * 1024;
 var P: PAnsiChar;
     M: TStream;
@@ -580,27 +513,32 @@ begin
   end;
 end;
 
-procedure TEditor_FormatUses.WindowActivated(const EditWindow: INTAEditWindow);
+procedure TFormatUses.Invoke;
 begin
+  FActionList := TActionList.Create(nil);
 
+  FAction := TAction.Create(nil);
+  FAction.Caption := ActionCaption;
+  FAction.ActionList := FActionList;
+  FAction.ShortCut := ActionShortCut;
+  FAction.OnExecute := ActionExecute;
+
+  (BorlandIDEServices as IOTAEditorServices).GetEditorLocalMenu.RegisterActionList(FActionList, ClassName, cEdMenuCatLast);
 end;
 
-procedure TEditor_FormatUses.WindowCommand(const EditWindow: INTAEditWindow; Command,
-  Param: Integer; var Handled: Boolean);
+function TFormatUses.Invoke_IOTAKeyboardBinding: IOTAKeyboardBinding;
 begin
-
+  Result := TOTA_KeyboardBinding.Create(ClassName, '', [ActionShortCut]) as IOTAKeyboardBinding;
 end;
 
-procedure TEditor_FormatUses.WindowNotification(const EditWindow: INTAEditWindow;
-  Operation: TOperation);
+function TFormatUses.Invoke_IOTAProjectMenuItemCreatorNotifier: IOTAProjectMenuItemCreatorNotifier;
 begin
-
+  Result := Self as IOTAProjectMenuItemCreatorNotifier;
 end;
 
-procedure TEditor_FormatUses.WindowShow(const EditWindow: INTAEditWindow; Show,
-  LoadedFromDesktop: Boolean);
+function TFormatUses.ActionShortCut: TShortCut;
 begin
-
+  Result := ShortCut(Ord('U'), [ssCtrl, ssAlt, ssShift]);
 end;
 
 end.

@@ -35,13 +35,11 @@ requires
 
 contains
   OTA.IDE in 'OTA.IDE.pas',
-  OTA.IDE140 in 'OTA.IDE140.pas',
   OTA.IDE.Wizard in 'OTA.IDE.Wizard.pas',
   OTA.BuildAllFromHere in 'OTA.BuildAllFromHere.pas',
   OTA.SearchProject in 'OTA.SearchProject.pas',
   OTA.SetActiveProjectModule in 'OTA.SetActiveProjectModule.pas',
   OTA.Register in 'OTA.Register.pas',
-  OTA.Register140 in 'OTA.Register140.pas',
   OTA.FormatUses in 'OTA.FormatUses.pas',
   OTA.ProjectManagerMenu in 'OTA.ProjectManagerMenu.pas',
   OTA.KeyboardBinding in 'OTA.KeyboardBinding.pas';

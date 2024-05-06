@@ -39,18 +39,6 @@ type
     procedure BeforeDestruction; override;
   end;
 
-  TNotifierOTA_EditorServices = class(TNotifierOTA)
-  public
-    procedure Setup; override;
-    procedure BeforeDestruction; override;
-  end;
-
-  TNotifierOTA_ProjectManager = class(TNotifierOTA)
-  public
-    procedure Setup; override;
-    procedure BeforeDestruction; override;
-  end;
-
   TNotifier_ProjectManager = class(
       TNotifierOTA<IOTAProjectMenuItemCreatorNotifier>)
   public
@@ -205,32 +193,6 @@ procedure TNotifierOTA_Services.BeforeDestruction;
 begin
   if FNotifierIndex <> -1 then
     (BorlandIDEServices as IOTAServices).RemoveNotifier(FNotifierIndex);
-  inherited;
-end;
-
-procedure TNotifierOTA_EditorServices.BeforeDestruction;
-begin
-  if FNotifierIndex <> -1 then
-    (BorlandIDEServices as IOTAEditorServices).RemoveNotifier(FNotifierIndex);
-  inherited;
-end;
-
-procedure TNotifierOTA_EditorServices.Setup;
-begin
-  FNotifier := FClass.Create;
-  FNotifierIndex := (BorlandIDEServices as IOTAEditorServices).AddNotifier(FNotifier as INTAEditServicesNotifier);
-end;
-
-procedure TNotifierOTA_ProjectManager.Setup;
-begin
-  FNotifier := FClass.Create;
-  FNotifierIndex := (BorlandIDEServices as IOTAProjectManager).AddMenuItemCreatorNotifier(FNotifier as IOTAProjectMenuItemCreatorNotifier);
-end;
-
-procedure TNotifierOTA_ProjectManager.BeforeDestruction;
-begin
-  if FNotifierIndex <> -1 then
-    (BorlandIDEServices as IOTAProjectManager).RemoveMenuItemCreatorNotifier(FNotifierIndex);
   inherited;
 end;
 
