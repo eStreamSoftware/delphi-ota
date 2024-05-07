@@ -23,7 +23,7 @@ type
 implementation
 
 uses
-  System.Classes, System.IOUtils,
+  System.Classes, System.IOUtils, System.Variants,
   OTA.IDE;
 
 resourcestring
@@ -83,6 +83,20 @@ begin
       sDir := '';
       if TOTAUtil.GetSourceDir(FileName, sDir) then
         TOTAUtil.SetVariable(StrSourceDir, sDir);
+    end;
+  end else if NotifyCode = ofnActiveProjectChanged then begin
+    var ActiveProject := (BorlandIDEServices as IOTAModuleServices).MainProjectGroup.ActiveProject;
+    if (ActiveProject.ApplicationType = sLibrary) or (ActiveProject.ApplicationType = sPackage) then begin
+      var ProjectGroup := (BorlandIDEServices as IOTAModuleServices).MainProjectGroup;
+      for var i := ProjectGroup.ProjectCount - 1 downto 0 do begin
+        if VarToStr(ProjectGroup.Projects[i].ProjectOptions.Values['Defines']).ToUpper.Contains('TESTINSIGHT') then begin
+          var Dep := ProjectGroup as IOTAProjectGroupProjectDependencies;
+          var DepList := Dep.GetEmptyProjectDependenciesList;
+          DepList.AddProject(ActiveProject);
+          Dep.SetProjectDependencies(ProjectGroup.Projects[i], DepList);
+          Break;
+        end;
+      end;
     end;
   end;
   Cancel := False;
