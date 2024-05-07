@@ -1,0 +1,9 @@
+== Introduction
+
+RAD Studio Open ToolsAPI Expert
+
+== Features
+1. Add short key (`Ctrl + ``) to *Build All From Here*
+1. Search Project (`F3`)
+1. Format Uses clause
+1. Add active project as project dependencies to TestInsight project built with runtime packages
