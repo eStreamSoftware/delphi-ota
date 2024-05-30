@@ -29,6 +29,11 @@ type
     constructor Create(const aFactory: TFunc<IOTAIDENotifier>); reintroduce;
   end;
 
+  TNotifier_DebuggerServices = class(TNotifierOTA<IOTADebuggerNotifier>)
+  public
+    constructor Create(const aFactory: TFunc<IOTADebuggerNotifier>); reintroduce;
+  end;
+
   TNotifier_ProjectManager = class(
       TNotifierOTA<IOTAProjectMenuItemCreatorNotifier>)
   public
@@ -131,6 +136,20 @@ begin
     end
   , procedure(aIndex: Integer) begin
       (BorlandIDEServices as IOTAServices).RemoveNotifier(aIndex);;
+    end
+  , aFactory
+  );
+end;
+
+constructor TNotifier_DebuggerServices.Create(
+  const aFactory: TFunc<IOTADebuggerNotifier>);
+begin
+  inherited Create(
+    function(const aNotifier: IOTADebuggerNotifier): Integer begin
+      Result := (BorlandIDEServices as IOTADebuggerServices).AddNotifier(aNotifier);
+    end
+  , procedure(aIndex: Integer) begin
+      (BorlandIDEServices as IOTADebuggerServices).RemoveNotifier(aIndex);;
     end
   , aFactory
   );

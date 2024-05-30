@@ -42,6 +42,7 @@ contains
   OTA.Register in 'OTA.Register.pas',
   OTA.FormatUses in 'OTA.FormatUses.pas',
   OTA.ProjectManagerMenu in 'OTA.ProjectManagerMenu.pas',
-  OTA.KeyboardBinding in 'OTA.KeyboardBinding.pas';
+  OTA.KeyboardBinding in 'OTA.KeyboardBinding.pas',
+  OTA.TestInsightHelper in 'OTA.TestInsightHelper.pas';
 
 end.

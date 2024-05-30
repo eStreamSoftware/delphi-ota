@@ -21,10 +21,11 @@ implementation
 uses
   System.SysUtils, ToolsAPI,
   OTA.BuildAllFromHere, OTA.FormatUses, OTA.IDE, OTA.SearchProject,
-  OTA.SetActiveProjectModule;
+  OTA.SetActiveProjectModule, OTA.TestInsightHelper;
 
 initialization
   TOTAFactory.RegisterProc(TNotifier_Services.Create(TSetActiveProjectModule.Create as TFunc<IOTAIDENotifier>));
+  TOTAFactory.RegisterProc(TNotifier_DebuggerServices.Create(TTestInsightHelper.Create as TFunc<IOTADebuggerNotifier>));
 
   TOTAFactory.RegisterProc(TNotifier_ProjectManager.Create(TSearchProject.Create as TFunc<IOTAProjectMenuItemCreatorNotifier>));
   TOTAFactory.RegisterProc(TNotifier_KeyboardServices.Create(TSearchProject.Create as TFunc<IOTAKeyboardBinding>));
