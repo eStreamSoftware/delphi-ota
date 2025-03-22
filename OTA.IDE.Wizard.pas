@@ -25,7 +25,7 @@ type
     function GetAuthor: string;
     function GetComment: string;
     function GetPage: string;
-    function GetGlyph: Cardinal;
+    function GetGlyph: THandle;
   end;
 
   TResourceDataModuleCreator = class(TInterfacedObject, IOTACreator,
@@ -96,7 +96,7 @@ type
     function GetAuthor: string;
     function GetComment: string;
     function GetPage: string;
-    function GetGlyph: Cardinal;
+    function GetGlyph: THandle;
   end;
 
   TResourceFormSourceFile = class(TInterfacedObject, IOTAFile)
@@ -149,7 +149,7 @@ type
     function GetAuthor: string;
     function GetComment: string;
     function GetPage: string;
-    function GetGlyph: Cardinal;
+    function GetGlyph: THandle;
   end;
 
   TResourceFrameSourceFile = class(TInterfacedObject, IOTAFile)
@@ -188,7 +188,7 @@ begin
   Result := 'EStream Resource Data Module Creator';
 end;
 
-function TResourceDataModuleCreatorWizard.GetGlyph: Cardinal;
+function TResourceDataModuleCreatorWizard.GetGlyph: THandle;
 begin
   Result := 0;
 end;
@@ -449,7 +449,7 @@ begin
   Result := 'EStream Resource Form Creator';
 end;
 
-function TResourceFormCreatorWizard.GetGlyph: Cardinal;
+function TResourceFormCreatorWizard.GetGlyph: THandle;
 begin
   Result := 0;
 end;
@@ -608,7 +608,7 @@ begin
   Result := 'EStream Resource Frame Creator';
 end;
 
-function TResourceFrameCreatorWizard.GetGlyph: Cardinal;
+function TResourceFrameCreatorWizard.GetGlyph: THandle;
 begin
   Result := 0;
 end;
