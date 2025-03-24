@@ -32,7 +32,9 @@ uses
 procedure TOTA_KeyboardBinding.BindKeyboard(
   const BindingServices: IOTAKeyBindingServices);
 begin
-  BindingServices.AddKeyBinding(FShortCuts, FKeyProc, nil, kfImplicitShift or kfImplicitModifier or kfImplicitKeypad, '', FMenuItemName)
+  var n := FMenuItemName;
+  {$ifdef Win64} n := '';{$endif}
+  BindingServices.AddKeyBinding(FShortCuts, FKeyProc, nil, kfImplicitShift or kfImplicitModifier or kfImplicitKeypad, '', n);
 end;
 
 procedure TOTA_KeyboardBinding.DefaultKeyProc(const Context: IOTAKeyContext;
