@@ -44,21 +44,21 @@ end;
 
 procedure TSetActiveProjectModule.BeforeCompile(const Project: IOTAProject;
   IsCodeInsight: Boolean; var Cancel: Boolean);
-var sHostApplication: string;
-    sFile: string;
-    S: TStringList;
 begin
   if IsCodeInsight then Exit;
 
-  sHostApplication := '';
-
+  var sHostApplication := '';
+  var sFile: string;
   if TOTAUtil.GetSetupIni(Project.FileName, sFile) then begin
-    S := TStringList.Create;
+    var S := TStringList.Create;
     try
       S.CaseSensitive := False;
       S.LoadFromFile(sFile);
       if S.Values['commonname'] <> '' then
-        sHostApplication := Format('%s\%s.exe', [ExcludeTrailingPathDelimiter(ExtractFilePath(Project.ProjectOptions.TargetName)), S.Values['commonname']]);
+        sHostApplication := TPath.ChangeExtension(
+          TPath.Combine(TPath.GetDirectoryName(Project.ProjectOptions.TargetName), S.Values['commonname'])
+        , 'exe'
+        );
     finally
       S.Free;
     end;
@@ -103,18 +103,13 @@ begin
 end;
 
 function TSetActiveProjectModule.GetModuleName(const aFileName: string): string;
-var P: string;
 begin
-  P := ExtractFilePath(aFileName);
-  while not FileExists(IncludeTrailingPathDelimiter(P) + '.gitmodules') do begin
-    P := ExpandFileName(P + '\..');
-    if P = IncludeTrailingPathDelimiter(ExtractFileDrive(P)) then begin
-      // It is root drive
-      Result := '';
-      Exit;
-    end;
+  var P := TPath.GetDirectoryName(aFileName);
+  while not TFile.Exists(TPath.Combine(P, '.gitmodules')) do begin
+    P := TPath.GetDirectoryName(P);
+    if P.IsEmpty then Exit('');
   end;
-  Result := ExtractFileName(P);
+  Result := TPath.GetFileName(P);
 end;
 
 function TSetActiveProjectModule.Invoke: IOTAIDENotifier;
