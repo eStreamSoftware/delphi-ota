@@ -60,8 +60,10 @@ type
   TOTAUtil = class abstract
   public
     class function GetSourceDir(const aProject: string; out aDir: string): boolean;
-    class function GetSetupIni(const aProject: string; out aFile: string): boolean;
+    class function GetSetupIni(const aProjectRoot: string; out aFile: string):
+        boolean;
     class procedure SetVariable(const aName, aValue: string);
+    class procedure SetVariableIfEmpty(const aName, aValue: string);
   end;
 
 procedure Register;
@@ -182,25 +184,20 @@ begin
   );
 end;
 
-class function TOTAUtil.GetSetupIni(const aProject: string; out aFile: string):
-    boolean;
+class function TOTAUtil.GetSetupIni(const aProjectRoot: string; out aFile:
+    string): boolean;
 var sFile: string;
     F: TSearchRec;
-    sPath: string;
+//    sPath: string;
 begin
   Result := False;
 
-  // Find Project root path
-  if not GetSourceDir(aProject, sPath) then Exit;
-
   // Find Host Application File Name in setup.ini
-  if FindFirst(Format('%s\*.*', [sPath]), faDirectory, F) = 0 then begin
+  if FindFirst(Format('%s\*.*', [aProjectRoot]), faDirectory, F) = 0 then begin
     while FindNext(F) = 0 do begin
       sFile := Format(
                  '%s\%s\%s\setup.ini',
-                 [sPath, F.Name, {$ifdef VER185}'project.d11'
-                                 {$else}'project'{$endif}
-                 ]
+                 [aProjectRoot, F.Name, 'project']
                );
       if FileExists(sFile) then begin
         aFile := sFile;
@@ -252,6 +249,12 @@ begin
   finally
     R.Free;
   end;
+end;
+
+class procedure TOTAUtil.SetVariableIfEmpty(const aName, aValue: string);
+begin
+  if GetEnvironmentVariable(aName).IsEmpty then
+    SetVariable(aName, aValue);
 end;
 
 end.

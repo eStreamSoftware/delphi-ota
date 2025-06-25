@@ -25,7 +25,10 @@ uses
 
 initialization
   TOTAFactory.RegisterProc(TNotifier_Services.Create(TSetActiveProjectModule.Create as TFunc<IOTAIDENotifier>));
+
   TOTAFactory.RegisterProc(TNotifier_DebuggerServices.Create(TTestInsightHelper.Create as TFunc<IOTADebuggerNotifier>));
+  TOTAFactory.RegisterProc(TNotifier_ProjectManager.Create(TTestInsightHelper.Create as TFunc<IOTAProjectMenuItemCreatorNotifier>));
+  TOTAFactory.RegisterProc(TNotifier_Services.Create(TTestInsightHelper.Create as TFunc<IOTAIDENotifier>));
 
   TOTAFactory.RegisterProc(TNotifier_ProjectManager.Create(TSearchProject.Create as TFunc<IOTAProjectMenuItemCreatorNotifier>));
   TOTAFactory.RegisterProc(TNotifier_KeyboardServices.Create(TSearchProject.Create as TFunc<IOTAKeyboardBinding>));

@@ -24,8 +24,8 @@ type
   strict protected
     { IOTALocalMenu }
     function GetCaption: string;
-    function GetChecked: Boolean; virtual;
-    function GetEnabled: Boolean; virtual;
+    function GetChecked: Boolean;
+    function GetEnabled: Boolean;
     function GetHelpContext: Integer;
     function GetName: string;
     function GetParent: string;
@@ -47,21 +47,24 @@ type
     procedure SetIsMultiSelectable(AValue: Boolean);
   public
     constructor Create(const ACaption, AVerb: string; const APosition: Integer;
-        const AExecuteProc: TExecuteProc = nil; const AName: string = ''; const
-        AParent: string = ''; aIsMultiSelectable: Boolean = False);
+        const AExecuteProc: TExecuteProc = nil; const AName: string = ''; aChecked:
+        Boolean = False; aEnabled: Boolean = True; const AParent: string = '';
+        aIsMultiSelectable: Boolean = False);
   end;
 
 implementation
 
 constructor TNotifierObject_ProjectManagerMenu.Create(const ACaption, AVerb:
     string; const APosition: Integer; const AExecuteProc: TExecuteProc = nil;
-    const AName: string = ''; const AParent: string = ''; aIsMultiSelectable:
-    Boolean = False);
+    const AName: string = ''; aChecked: Boolean = False; aEnabled: Boolean =
+    True; const AParent: string = ''; aIsMultiSelectable: Boolean = False);
 begin
   inherited Create;
   SetCaption(ACaption);
   SetIsMultiSelectable(aIsMultiSelectable);
   SetName(AName);
+  SetChecked(aChecked);
+  SetEnabled(aEnabled);
   SetParent(AParent);
   SetPosition(APosition);
   SetVerb(AVerb);
@@ -81,12 +84,12 @@ end;
 
 function TNotifierObject_ProjectManagerMenu.GetChecked: Boolean;
 begin
-  Result := False;
+  Result := FChecked;
 end;
 
 function TNotifierObject_ProjectManagerMenu.GetEnabled: Boolean;
 begin
-  Result := True;
+  Result := FEnabled;
 end;
 
 function TNotifierObject_ProjectManagerMenu.GetHelpContext: Integer;
