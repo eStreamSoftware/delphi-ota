@@ -7,6 +7,11 @@ uses
 
 type
   TSetActiveProjectModule = class(TNotifierObject, IOTAIDENotifier, IOTAIDENotifier50, TFunc<IOTAIDENotifier>)
+  const
+    StrActiveHostApplication = 'ActiveHostApplication';
+    StrActiveProjectModule   = 'ActiveProjectModule';
+  private
+    procedure SetupVariables(aProject: IOTAProject);
   protected
     procedure FileNotification(NotifyCode: TOTAFileNotification;
       const FileName: string; var Cancel: Boolean);
@@ -17,7 +22,8 @@ type
     procedure AfterCompile(Succeeded: Boolean; IsCodeInsight: Boolean); overload;
     function Invoke: IOTAIDENotifier;
   protected
-    function GetModuleName(const aFileName: string): string;
+    function GetModuleName(aFileName: string): string;
+    function GetModuleRoot(aFileName: string): string;
   end;
 
 implementation
@@ -25,11 +31,6 @@ implementation
 uses
   System.Classes, System.IOUtils,
   OTA.IDE;
-
-resourcestring
-  StrActiveProjectModule   = 'ActiveProjectModule';
-  StrActiveHostApplication = 'ActiveHostApplication';
-  StrSourceDir             = 'SourceDir';
 
 procedure TSetActiveProjectModule.AfterCompile(Succeeded: Boolean);
 begin
@@ -45,50 +46,17 @@ end;
 procedure TSetActiveProjectModule.BeforeCompile(const Project: IOTAProject;
   IsCodeInsight: Boolean; var Cancel: Boolean);
 begin
-  if IsCodeInsight then Exit;
-
-  var sHostApplication := '';
-  var sFile: string;
-  if TOTAUtil.GetSetupIni(Project.FileName, sFile) then begin
-    var S := TStringList.Create;
-    try
-      S.CaseSensitive := False;
-      S.LoadFromFile(sFile);
-      if S.Values['commonname'] <> '' then
-        sHostApplication := TPath.ChangeExtension(
-          TPath.Combine(TPath.GetDirectoryName(Project.ProjectOptions.TargetName), S.Values['commonname'])
-        , 'exe'
-        );
-    finally
-      S.Free;
-    end;
-  end;
-  // Set Host Application in environment variable
-  TOTAUtil.SetVariable(StrActiveHostApplication, sHostApplication);
+  if not IsCodeInsight then SetupVariables(Project);
 end;
 
 procedure TSetActiveProjectModule.FileNotification(NotifyCode: TOTAFileNotification;
   const FileName: string; var Cancel: Boolean);
-var sExt: string;
-    sGroup, sProj: string;
-    sDir: string;
 begin
-  if NotifyCode = ofnFileOpening then begin
-    sExt := ExtractFileExt(FileName);
-    sGroup := {$if CompilerVersion<=18} '.bdsgroup' {$else} '.groupproj' {$ifend};
-    sProj := {$if CompilerVersion<=18} '.bdsproj' {$else} '.dproj' {$ifend};
-    if SameText(sExt, sGroup) or SameText(sExt, sProj) then begin
-      TOTAUtil.SetVariable(StrActiveProjectModule, GetModuleName(FileName));
-
-      sDir := '';
-      if TOTAUtil.GetSourceDir(FileName, sDir) then
-        TOTAUtil.SetVariable(StrSourceDir, sDir);
-    end;
-  end;
-  Cancel := False;
+  if NotifyCode = ofnEndProjectGroupOpen then
+    SetupVariables((BorlandIDEServices as IOTAModuleServices).MainProjectGroup.ActiveProject);
 end;
 
-function TSetActiveProjectModule.GetModuleName(const aFileName: string): string;
+function TSetActiveProjectModule.GetModuleName(aFileName: string): string;
 begin
   var P := TPath.GetDirectoryName(aFileName);
   while not TFile.Exists(TPath.Combine(P, '.gitmodules')) do begin
@@ -103,10 +71,47 @@ begin
   Result := Self as IOTAIDENotifier;
 end;
 
+procedure TSetActiveProjectModule.SetupVariables(aProject: IOTAProject);
+begin
+  if aProject = nil then Exit;
+
+  TOTAUtil.SetVariable(StrActiveProjectModule, GetModuleName(aProject.FileName));
+
+  var sHostApplication := '';
+  var sFile: string;
+
+  if TOTAUtil.GetSetupIni(GetModuleRoot(aProject.FileName), sFile) then begin
+    var S := TStringList.Create;
+    try
+      S.CaseSensitive := False;
+      S.LoadFromFile(sFile);
+      if S.Values['commonname'] <> '' then
+        sHostApplication := TPath.ChangeExtension(
+          TPath.Combine(TPath.GetDirectoryName(aProject.ProjectOptions.TargetName), S.Values['commonname'])
+        , 'exe'
+        );
+    finally
+      S.Free;
+    end;
+  end;
+  // Set Host Application in environment variable
+  TOTAUtil.SetVariable(StrActiveHostApplication, sHostApplication);
+end;
+
 procedure TSetActiveProjectModule.AfterCompile(Succeeded,
   IsCodeInsight: Boolean);
 begin
 
+end;
+
+function TSetActiveProjectModule.GetModuleRoot(aFileName: string): string;
+begin
+  var P := TPath.GetDirectoryName(aFileName);
+  while not TFile.Exists(TPath.Combine(P, '.gitmodules')) do begin
+    P := TPath.GetDirectoryName(P);
+    if P.IsEmpty then Exit('');
+  end;
+  Result := P;
 end;
 
 end.
