@@ -86,10 +86,7 @@ begin
       S.CaseSensitive := False;
       S.LoadFromFile(sFile);
       if S.Values['commonname'] <> '' then
-        sHostApplication := TPath.ChangeExtension(
-          TPath.Combine(TPath.GetDirectoryName(aProject.ProjectOptions.TargetName), S.Values['commonname'])
-        , 'exe'
-        );
+        sHostApplication := TPath.Combine(TPath.GetDirectoryName(aProject.ProjectOptions.TargetName), S.Values['commonname'] + '.exe');
     finally
       S.Free;
     end;
