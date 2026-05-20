@@ -9,6 +9,8 @@ uses
 
 type
   TDelphiLibrary = class abstract
+  const
+    sEnvironmentVariables = 'Environment Variables' {$ifdef Win64} + ' x64'{$endif};
   strict private
     class function GetFiles(aPaths: TArray<string>; aComparer:
         IComparer<string>): TArray<string>;
@@ -110,7 +112,7 @@ begin
     R.RootKey := HKEY_CURRENT_USER;
 
     // Read Environment Variables
-    R.OpenKey((BorlandIDEServices as IOTAServices).GetBaseRegistryKey + '\Environment Variables', False);
+    R.OpenKey((BorlandIDEServices as IOTAServices).GetBaseRegistryKey + '\' + sEnvironmentVariables, False);
     L := TStringList.Create;
     try
       R.GetValueNames(L);

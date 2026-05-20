@@ -58,6 +58,8 @@ type
   end;
 
   TOTAUtil = class abstract
+  const
+    sEnvironmentVariables = 'Environment Variables' {$ifdef Win64} + ' x64'{$endif};
   public
     class function GetSourceDir(const aProject: string; out aDir: string): boolean;
     class function GetSetupIni(const aProjectRoot: string; out aFile: string):
@@ -238,7 +240,7 @@ begin
   R := TRegistry.Create;
   try
     R.RootKey := HKEY_CURRENT_USER;
-    F := (BorlandIDEServices as IOTAServices).GetBaseRegistryKey + '\Environment Variables';
+    F := (BorlandIDEServices as IOTAServices).GetBaseRegistryKey + '\' + sEnvironmentVariables;
     if R.OpenKey(F, True) then begin
       if not R.KeyExists(aName) or (R.ReadString(aName) <> aValue) then begin
         R.WriteString(aName, aValue);
