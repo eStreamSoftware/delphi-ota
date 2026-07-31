@@ -37,7 +37,6 @@ contains
   OTA.IDE in 'OTA.IDE.pas',
   OTA.IDE.Wizard in 'OTA.IDE.Wizard.pas',
   OTA.BuildAllFromHere in 'OTA.BuildAllFromHere.pas',
-  OTA.SearchProject in 'OTA.SearchProject.pas',
   OTA.SetActiveProjectModule in 'OTA.SetActiveProjectModule.pas',
   OTA.Register in 'OTA.Register.pas',
   OTA.FormatUses in 'OTA.FormatUses.pas',

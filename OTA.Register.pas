@@ -20,7 +20,7 @@ implementation
 
 uses
   System.SysUtils, ToolsAPI,
-  OTA.BuildAllFromHere, OTA.FormatUses, OTA.IDE, OTA.SearchProject,
+  OTA.BuildAllFromHere, OTA.FormatUses, OTA.IDE,
   OTA.SetActiveProjectModule, OTA.TestInsightHelper;
 
 initialization
@@ -29,9 +29,6 @@ initialization
   TOTAFactory.RegisterProc(TNotifier_DebuggerServices.Create(TTestInsightHelper.Create as TFunc<IOTADebuggerNotifier>));
   TOTAFactory.RegisterProc(TNotifier_ProjectManager.Create(TTestInsightHelper.Create as TFunc<IOTAProjectMenuItemCreatorNotifier>));
   TOTAFactory.RegisterProc(TNotifier_Services.Create(TTestInsightHelper.Create as TFunc<IOTAIDENotifier>));
-
-  TOTAFactory.RegisterProc(TNotifier_ProjectManager.Create(TSearchProject.Create as TFunc<IOTAProjectMenuItemCreatorNotifier>));
-  TOTAFactory.RegisterProc(TNotifier_KeyboardServices.Create(TSearchProject.Create as TFunc<IOTAKeyboardBinding>));
 
   TOTAFactory.RegisterProc(TNotifier_KeyboardServices.Create(TBuildAllFromHere.Create as TFunc<IOTAKeyboardBinding>));
 
